@@ -116,7 +116,7 @@ module.exports = async (req, res) => {
         author: h.author?.nickname || h.author?.username || 'Anonim',
         play_count: h.play_count || 0,
         digg_count: h.digg_count || 0,
-        link: h.play || null,
+        link: h.play ? (h.play.startsWith('http') ? h.play : 'https://www.tikwm.com' + h.play) : null,
         images: h.images || [],
         video_id: h.video_id
       }))
