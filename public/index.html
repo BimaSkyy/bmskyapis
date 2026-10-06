@@ -55,7 +55,7 @@ h1{font:800 clamp(44px,9vw,80px)/.95 var(--display);letter-spacing:-.04em;margin
 @media(max-width:720px){.pg{grid-template-columns:1fr}}
 .f{margin-bottom:14px;position:relative}
 .f label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
-.f textarea,.f select{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.f textarea,.f select,.f input{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
 .f textarea{resize:vertical;min-height:90px}
 .count{position:absolute;right:10px;bottom:8px;font-size:12px;color:var(--muted);background:#fff}
 .run{width:100%;height:46px;font:600 16px var(--body);color:#fff;background:var(--blue);border:0;border-radius:10px;cursor:pointer}
@@ -73,6 +73,9 @@ h1{font:800 clamp(44px,9vw,80px)/.95 var(--display);letter-spacing:-.04em;margin
 .stage[data-state=error] .msg{color:var(--err)}
 .stage video{position:absolute;inset:0;width:100%;height:100%;background:var(--ink)}
 .stage[data-state=done] .sun,.stage[data-state=done] .ground,.stage[data-state=done] .msg{display:none}
+.stage audio{position:absolute;left:12px;right:12px;bottom:12px;width:calc(100% - 24px);z-index:1}
+.stage[data-state=played] .sun{bottom:58%}
+.stage[data-state=played] .msg{display:none}
 .stage[data-state=loading] .sun{animation:rise 50s cubic-bezier(.2,.6,.3,1) forwards}
 @keyframes rise{to{bottom:58%}}
 @media(prefers-reduced-motion:reduce){
@@ -113,6 +116,7 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
     title: 'Text to Video',
     method: 'GET',
     path: '/api/ai/text2video',
+    result: { type: 'video', field: 'videoUrl', label: 'video' },
     params: [
       { name: 'prompt', type: 'textarea', label: 'Prompt', required: true, max: 500, min: 3,
         placeholder: 'a cow walking in a city at sunset', value: 'a cow in city' },
@@ -120,6 +124,19 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
         options: [['auto', 'Otomatis'], ['16:9', '16:9'], ['9:16', '9:16'], ['1:1', '1:1']] },
       { name: 'sound', type: 'select', label: 'Suara', value: 'true',
         options: [['true', 'Aktif'], ['false', 'Mati']] }
+    ]
+  }, {
+    id: 'ttsfree',
+    category: 'ai',
+    title: 'Text to Speech',
+    method: 'GET',
+    path: '/api/ai/ttsfree',
+    result: { type: 'audio', field: 'previewUrl', label: 'suara' },
+    params: [
+      { name: 'text', type: 'textarea', label: 'Teks', required: true, max: 500, min: 1,
+        placeholder: 'Halo, ini suara dari BmSkyApis', value: 'Halo, apa kabar?' },
+      { name: 'lang', type: 'input', label: 'Bahasa', limit: 20, value: 'Id' },
+      { name: 'mood', type: 'input', label: 'Suasana', limit: 20, value: 'EXCITED' }
     ]
   }];
   const LABELS = { ai: 'AI' };
@@ -145,8 +162,8 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       '<p class="hint" role="status"></p></div>' +
       '<div class="pg-out">' +
         '<div class="stage" data-state="idle"><div class="sun"></div><div class="ground"></div>' +
-        '<p class="msg">Hasil tampil di sini.</p><video controls playsinline hidden></video></div>' +
-        '<div class="status"><span class="chip"></span><a class="dl" target="_blank" rel="noopener" hidden>Buka video</a></div>' +
+        '<p class="msg">Hasil tampil di sini.</p><video controls playsinline hidden></video><audio controls hidden></audio></div>' +
+        '<div class="status"><span class="chip"></span><a class="dl" target="_blank" rel="noopener" hidden>Buka hasil</a></div>' +
         '<details><summary>Detail teknis</summary><div class="tech">' +
           '<div class="tech-h"><span>cURL</span><button class="ghost copy" type="button">Salin</button></div><pre class="curl"></pre>' +
           '<div class="tech-h"><span>Respons</span></div><pre class="out">Belum ada respons.</pre>' +
@@ -155,7 +172,8 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
 
     const q = (s) => root.querySelector(s);
     const runBtn = q('.run'), hintEl = q('.hint'), stage = q('.stage'), msgEl = q('.msg');
-    const video = q('video'), chip = q('.chip'), dl = q('.dl'), out = q('.out');
+    const video = q('video'), audio = q('audio'), chip = q('.chip'), dl = q('.dl'), out = q('.out');
+    const RES = ep.result;
 
     const val = (name) => String(values[name] ?? '').replace(/\s+/g, ' ').trim();
     const hint = (t) => { hintEl.textContent = t || ''; };
@@ -170,6 +188,10 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       if (p.type === 'select') {
         inp = el('select');
         p.options.forEach(([v, l]) => { const o = el('option', null, l); o.value = v; inp.append(o); });
+      } else if (p.type === 'input') {
+        inp = el('input');
+        inp.type = 'text';
+        if (p.limit) inp.maxLength = p.limit;
       } else {
         inp = el('textarea');
         inp.rows = 3;
@@ -232,13 +254,14 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       busy = true;
       hint('');
       setButton('Memproses…', true);
-      video.pause(); video.hidden = true; video.removeAttribute('src'); dl.hidden = true;
+      video.pause(); video.hidden = true; video.removeAttribute('src');
+      audio.pause(); audio.hidden = true; audio.removeAttribute('src'); dl.hidden = true;
       setState('loading');
       const t0 = performance.now();
-      msgEl.textContent = 'Membuat video… 0 dtk';
+      msgEl.textContent = 'Membuat ' + RES.label + '… 0 dtk';
       clearInterval(tick);
       tick = setInterval(() => {
-        msgEl.textContent = 'Membuat video… ' + Math.floor((performance.now() - t0) / 1000) + ' dtk';
+        msgEl.textContent = 'Membuat ' + RES.label + '… ' + Math.floor((performance.now() - t0) / 1000) + ' dtk';
       }, 500);
 
       let status = 0, json = null, retry = 0;
@@ -256,14 +279,15 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
 
       const took = ((performance.now() - t0) / 1000).toFixed(1);
       out.textContent = JSON.stringify(json, null, 2);
-      const videoUrl = json && json.success && json.data && json.data.videoUrl;
+      const mediaUrl = json && json.success && json.data && json.data[RES.field];
 
-      if (typeof videoUrl === 'string' && videoUrl.startsWith('https://')) {
-        video.src = videoUrl;
-        video.hidden = false;
-        dl.href = videoUrl;
+      if (typeof mediaUrl === 'string' && mediaUrl.startsWith('https://')) {
+        const media = RES.type === 'audio' ? audio : video;
+        media.src = mediaUrl;
+        media.hidden = false;
+        dl.href = mediaUrl;
         dl.hidden = false;
-        setState('done');
+        setState(RES.type === 'audio' ? 'played' : 'done');
         chip.className = 'chip ok';
         chip.textContent = status + ' · ' + took + ' dtk';
         startCooldown(5);
@@ -328,7 +352,6 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       fb.hidden = true;
       let built = false;
       fh.addEventListener('click', () => {
-        if (!built && !fb.hidden === false) { /* dibangun saat pertama dibuka */ }
         if (!built) { fb.append(createPlayground(e)); built = true; }
       });
       f.append(fh, fb);
