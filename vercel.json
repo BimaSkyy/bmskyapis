@@ -1,17 +1,11 @@
 {
-  "framework": null,
-  "outputDirectory": "public",
   "functions": {
-    "api/**/*.js": { "maxDuration": 60 }
-  },
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-      ]
+    "api/index.js": {
+      "includeFiles": "plugins/**"
     }
+  },
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/meta/:path*", "destination": "/api" }
   ]
 }
