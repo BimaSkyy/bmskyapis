@@ -73,6 +73,9 @@ h1{font:800 clamp(44px,9vw,80px)/.95 var(--display);letter-spacing:-.04em;margin
 .stage[data-state=error] .msg{color:var(--err)}
 .stage video{position:absolute;inset:0;width:100%;height:100%;background:var(--ink)}
 .stage[data-state=done] .sun,.stage[data-state=done] .ground,.stage[data-state=done] .msg{display:none}
+.reply{min-height:140px;max-height:320px;overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-word;font-size:15px;color:var(--muted)}
+.reply.has{color:var(--ink)}
+.reply.bad{color:var(--err)}
 .stage audio{position:absolute;left:12px;right:12px;bottom:12px;width:calc(100% - 24px);z-index:1}
 .stage[data-state=played] .sun{bottom:58%}
 .stage[data-state=played] .msg{display:none}
@@ -138,6 +141,17 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       { name: 'lang', type: 'input', label: 'Bahasa', limit: 20, value: 'Id' },
       { name: 'mood', type: 'input', label: 'Suasana', limit: 20, value: 'EXCITED' }
     ]
+  }, {
+    id: 'gemini',
+    category: 'ai',
+    title: 'Gemini',
+    method: 'GET',
+    path: '/api/ai/gemini',
+    result: { type: 'text', field: 'response', label: 'jawaban' },
+    params: [
+      { name: 'text', type: 'textarea', label: 'Pertanyaan', required: true, max: 1000, min: 1,
+        placeholder: 'Tanyakan apa saja', value: 'Halo, apa kabar?' }
+    ]
   }];
   const LABELS = { ai: 'AI' };
 
@@ -160,7 +174,7 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       '<div class="pg-form"><div class="fields"></div>' +
       '<button class="run" type="button">Kirim permintaan</button>' +
       '<p class="hint" role="status"></p></div>' +
-      '<div class="pg-out">' +
+      '<div class="pg-out"><div class="reply" hidden>Jawaban tampil di sini.</div>' +
         '<div class="stage" data-state="idle"><div class="sun"></div><div class="ground"></div>' +
         '<p class="msg">Hasil tampil di sini.</p><video controls playsinline hidden></video><audio controls hidden></audio></div>' +
         '<div class="status"><span class="chip"></span><a class="dl" target="_blank" rel="noopener" hidden>Buka hasil</a></div>' +
@@ -174,6 +188,10 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
     const runBtn = q('.run'), hintEl = q('.hint'), stage = q('.stage'), msgEl = q('.msg');
     const video = q('video'), audio = q('audio'), chip = q('.chip'), dl = q('.dl'), out = q('.out');
     const RES = ep.result;
+    const isText = RES.type === 'text';
+    const reply = q('.reply');
+    if (isText) { stage.hidden = true; reply.hidden = false; }
+    const say = (t) => { (isText ? reply : msgEl).textContent = t; };
 
     const val = (name) => String(values[name] ?? '').replace(/\s+/g, ' ').trim();
     const hint = (t) => { hintEl.textContent = t || ''; };
@@ -258,10 +276,11 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       audio.pause(); audio.hidden = true; audio.removeAttribute('src'); dl.hidden = true;
       setState('loading');
       const t0 = performance.now();
-      msgEl.textContent = 'Membuat ' + RES.label + '… 0 dtk';
+      reply.classList.remove('bad', 'has');
+      say('Membuat ' + RES.label + '… 0 dtk');
       clearInterval(tick);
       tick = setInterval(() => {
-        msgEl.textContent = 'Membuat ' + RES.label + '… ' + Math.floor((performance.now() - t0) / 1000) + ' dtk';
+        say('Membuat ' + RES.label + '… ' + Math.floor((performance.now() - t0) / 1000) + ' dtk');
       }, 500);
 
       let status = 0, json = null, retry = 0;
@@ -281,19 +300,27 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       out.textContent = JSON.stringify(json, null, 2);
       const mediaUrl = json && json.success && json.data && json.data[RES.field];
 
-      if (typeof mediaUrl === 'string' && mediaUrl.startsWith('https://')) {
-        const media = RES.type === 'audio' ? audio : video;
-        media.src = mediaUrl;
-        media.hidden = false;
-        dl.href = mediaUrl;
-        dl.hidden = false;
+      const good = typeof mediaUrl === 'string' && (isText ? mediaUrl.length > 0 : mediaUrl.startsWith('https://'));
+
+      if (good) {
+        if (isText) {
+          reply.textContent = mediaUrl;
+          reply.classList.add('has');
+        } else {
+          const media = RES.type === 'audio' ? audio : video;
+          media.src = mediaUrl;
+          media.hidden = false;
+          dl.href = mediaUrl;
+          dl.hidden = false;
+        }
         setState(RES.type === 'audio' ? 'played' : 'done');
         chip.className = 'chip ok';
         chip.textContent = status + ' · ' + took + ' dtk';
         startCooldown(5);
       } else {
         const m = (json && json.error && json.error.message) || 'Permintaan gagal.';
-        msgEl.textContent = m;
+        say(m);
+        if (isText) reply.classList.add('bad');
         setState('error');
         chip.className = 'chip bad';
         chip.textContent = (status || 'ERR') + ' · ' + took + ' dtk';
