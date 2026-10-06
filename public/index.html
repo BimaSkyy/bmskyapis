@@ -152,6 +152,17 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       { name: 'text', type: 'textarea', label: 'Pertanyaan', required: true, max: 1000, min: 1,
         placeholder: 'Tanyakan apa saja', value: 'Halo, apa kabar?' }
     ]
+  }, {
+    id: 'flux',
+    category: 'ai',
+    title: 'Flux Generate Image',
+    method: 'GET',
+    path: '/api/ai/flux',
+    result: { type: 'image', field: 'imageUrl', label: 'gambar' },
+    params: [
+      { name: 'prompt', type: 'textarea', label: 'Deskripsi Gambar', required: true, max: 500, min: 1,
+        placeholder: 'Contoh: langit malam penuh bintang gaya anime', value: 'anime wanita dewasa bajak laut' }
+    ]
   }];
   const LABELS = { ai: 'AI' };
 
@@ -300,12 +311,25 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       out.textContent = JSON.stringify(json, null, 2);
       const mediaUrl = json && json.success && json.data && json.data[RES.field];
 
-      const good = typeof mediaUrl === 'string' && (isText ? mediaUrl.length > 0 : mediaUrl.startsWith('https://'));
+      const isImage = RES.type === 'image';
+      const good = typeof mediaUrl === 'string' && (isText ? mediaUrl.length > 0 : mediaUrl.startsWith('https://') || mediaUrl.startsWith('data:image/'));
 
       if (good) {
         if (isText) {
           reply.textContent = mediaUrl;
           reply.classList.add('has');
+        } else if (isImage) {
+          const img = document.createElement('img');
+          img.src = mediaUrl;
+          img.style.width = '100%';
+          img.style.height = '100%';
+          img.style.objectFit = 'contain';
+          img.hidden = false;
+          stage.innerHTML = '';
+          stage.append(img);
+          stage.hidden = false;
+          dl.href = mediaUrl;
+          dl.hidden = false;
         } else {
           const media = RES.type === 'audio' ? audio : video;
           media.src = mediaUrl;
@@ -313,7 +337,7 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
           dl.href = mediaUrl;
           dl.hidden = false;
         }
-        setState(RES.type === 'audio' ? 'played' : 'done');
+        setState(isImage ? 'done' : (RES.type === 'audio' ? 'played' : 'done'));
         chip.className = 'chip ok';
         chip.textContent = status + ' · ' + took + ' dtk';
         startCooldown(5);
