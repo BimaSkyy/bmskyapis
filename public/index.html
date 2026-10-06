@@ -142,11 +142,11 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       { name: 'mood', type: 'input', label: 'Suasana', limit: 20, value: 'EXCITED' }
     ]
   }, {
-    id: 'gemini',
+    id: 'deepai',
     category: 'ai',
-    title: 'Gemini',
+    title: 'DeepAI',
     method: 'GET',
-    path: '/api/ai/gemini',
+    path: '/api/ai/deepai',
     result: { type: 'text', field: 'response', label: 'jawaban' },
     params: [
       { name: 'text', type: 'textarea', label: 'Pertanyaan', required: true, max: 1000, min: 1,
