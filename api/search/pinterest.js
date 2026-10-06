@@ -50,17 +50,33 @@ module.exports = async (req, res) => {
   try {
     body = await upstream.json();
   } catch (e) {
-    body = null;
+    return fail(res, 502, 'INVALID_RESPONSE', 'Respons dari layanan tidak berformat JSON.');
   }
 
-  if (!upstream.ok || !body || !body.status || !Array.isArray(body.result) || body.result.length === 0) {
-    const msg = body?.message || 'Tidak ada hasil untuk: ' + query;
-    return fail(res, 404, 'NO_RESULT', msg);
+  // Debug: tampilkan apa yang diterima
+  console.log('[Pinterest Debug] status:', upstream.status, 'body:', JSON.stringify(body));
+
+  // Lebih fleksibel: terima berbagai format respons
+  let results = [];
+  if (Array.isArray(body)) {
+    results = body;
+  } else if (Array.isArray(body?.result)) {
+    results = body.result;
+  } else if (Array.isArray(body?.data)) {
+    results = body.data;
+  } else if (body?.status === false) {
+    // API kembalikan status:false = pesan error
+    return fail(res, 404, 'NO_RESULT', body.message || 'Tidak ada hasil untuk: ' + query);
   }
 
-  const items = body.result.filter((it) => it.image).slice(0, 5);
+  if (results.length === 0) {
+    return fail(res, 404, 'NO_RESULT', 'Tidak ada hasil untuk: ' + query);
+  }
+
+  // Filter yang punya gambar
+  const items = results.filter((it) => it.image || it.thumbnail || it.img).slice(0, 5);
   if (items.length === 0) {
-    return fail(res, 404, 'NO_IMAGE_RESULT', 'Hasil tidak ditemukan atau tidak punya gambar.');
+    return fail(res, 404, 'NO_IMAGE_RESULT', 'Ada hasil tapi tidak ada gambar yang valid.');
   }
 
   return res.status(200).json({
@@ -69,10 +85,10 @@ module.exports = async (req, res) => {
       query,
       count: items.length,
       results: items.map((it) => ({
-        title: it.title || query,
-        url: it.url || 'https://pinterest.com',
-        image: it.image,
-        username: it.username || 'Pinterest'
+        title: it.title || it.caption || query,
+        url: it.url || it.link || 'https://pinterest.com',
+        image: it.image || it.thumbnail || it.img,
+        username: it.username || it.author || 'Pinterest'
       }))
     }
   });
