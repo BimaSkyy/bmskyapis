@@ -163,8 +163,19 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       { name: 'prompt', type: 'textarea', label: 'Deskripsi Gambar', required: true, max: 500, min: 1,
         placeholder: 'Contoh: langit malam penuh bintang gaya anime', value: 'anime wanita dewasa bajak laut' }
     ]
+  }, {
+    id: 'pinterest',
+    category: 'search',
+    title: 'Pinterest Search',
+    method: 'GET',
+    path: '/api/search/pinterest',
+    result: { type: 'text', field: 'count', label: 'hasil' },
+    params: [
+      { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, max: 100, min: 1,
+        placeholder: 'Contoh: anime, kucing, pemandangan', value: 'girls' }
+    ]
   }];
-  const LABELS = { ai: 'AI' };
+  const LABELS = { ai: 'AI', search: 'Pencarian' };
 
   const el = (tag, cls, text) => {
     const n = document.createElement(tag);
