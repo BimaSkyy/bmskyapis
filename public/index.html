@@ -1,268 +1,332 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BmskyAPIs</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: system-ui, -apple-system, sans-serif; background: #0f0f0f; color: #e6e6e6; line-height: 1.5; padding: 20px; max-width: 900px; margin: 0 auto; }
-    nav { margin-bottom: 30px; padding-bottom: 15px; border-bottom: 1px solid #2a2a2a; }
-    h1 { font-size: 1.5rem; color: #fff; }
-    .cat { margin-bottom: 30px; }
-    .cat-title { font-size: 1rem; color: #888; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; }
-    .ep-wrap { margin-bottom: 10px; }
-    .ep-btn { width: 100%; text-align: left; padding: 12px 16px; background: #1a1a1a; border: 1px solid #333; color: #fff; border-radius: 8px; cursor: pointer; font-size: 1rem; transition: 0.2s; }
-    .ep-btn:hover { background: #252525; }
-    .ep-wrap.open .ep-btn { border-bottom-left-radius: 0; border-bottom-right-radius: 0; border-bottom: none; background: #222; }
-    .pg { background: #1a1a1a; border: 1px solid #333; border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; padding: 20px; }
-    .pg-form { margin-bottom: 20px; }
-    .fields { margin-bottom: 15px; }
-    .f { margin-bottom: 12px; }
-    label { display: block; margin-bottom: 4px; color: #ccc; font-size: 0.9rem; }
-    input, textarea, select { width: 100%; padding: 10px 12px; background: #252525; border: 1px solid #3a3a3a; color: #fff; border-radius: 6px; font-size: 0.95rem; }
-    textarea { resize: vertical; min-height: 80px; }
-    .count { float: right; font-size: 0.8rem; color: #666; margin-top: 4px; }
-    .run { width: 100%; padding: 12px; background: #2563eb; border: none; color: #fff; border-radius: 6px; font-size: 1rem; cursor: pointer; transition: 0.2s; }
-    .run:hover { background: #1d4ed8; }
-    .run:disabled { background: #334155; cursor: not-allowed; }
-    .hint { margin-top: 8px; font-size: 0.85rem; color: #888; min-height: 1.2rem; }
-    .pg-out { margin-top: 15px; }
-    .status { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-    .chip { padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; }
-    .chip.ok { background: #1e3a2f; color: #4ade80; }
-    .chip.bad { background: #3a1f1f; color: #f87171; }
-    .dl { color: #60a5fa; text-decoration: none; font-size: 0.9rem; }
-    details { background: #222; border-radius: 6px; margin-top: 10px; }
-    summary { padding: 10px 14px; cursor: pointer; color: #ccc; font-size: 0.9rem; }
-    .tech { padding: 0 14px 14px; }
-    .tech-h { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 4px; font-size: 0.85rem; color: #888; }
-    .ghost { background: none; border: none; color: #60a5fa; cursor: pointer; font-size: 0.85rem; }
-    pre { background: #2a2a2a; padding: 12px; border-radius: 6px; overflow-x: auto; font-size: 0.85rem; line-height: 1.4; color: #d4d4d4; margin-top: 6px; white-space: pre-wrap; word-break: break-all; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API Panel</title>
+<style>
+  :root {
+    --bg: #f4f5f6;
+    --surface: #ffffff;
+    --ink: #1c2226;
+    --muted: #66707a;
+    --line: #dde1e5;
+    --accent: #0f6b5c;
+    --accent-ink: #ffffff;
+    --code: #eef0f2;
+    --error: #b3261e;
+    --ok: #0f6b5c;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 16px;
+  }
+  .bar { max-width: 1100px; margin: 0 auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+  #search {
+    flex: 1 1 200px; min-width: 0;
+    padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
+    font: inherit; background: var(--bg);
+  }
+  #search:focus, input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .chips { max-width: 1100px; margin: 10px auto 0; display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    padding: 4px 12px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+  main {
+    max-width: 1100px; margin: 0 auto; padding: 16px;
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
+    align-items: start;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px; min-width: 0;
+  }
+  .card h2 { margin: 0; font-size: 16px; font-weight: 650; display: flex; gap: 8px; align-items: baseline; }
+  .tag { font-size: 12px; color: var(--muted); font-weight: 400; }
+  .desc { margin: 2px 0 10px; color: var(--muted); font-size: 14px; }
+  .row { display: flex; gap: 6px; align-items: stretch; }
+  .endpoint {
+    flex: 1; min-width: 0; font: 12.5px/1.4 var(--mono);
+    background: var(--code); border-radius: 6px; padding: 7px 9px;
+    overflow-x: auto; white-space: nowrap;
+  }
+  button.btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    border-radius: 6px; padding: 6px 12px; font: inherit; font-size: 13px; cursor: pointer;
+    white-space: nowrap;
+  }
+  button.btn:hover { background: var(--bg); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button.primary:hover { background: #0b574b; }
+  button.btn:disabled { opacity: .6; cursor: default; }
+  .fields { display: grid; gap: 8px; margin: 12px 0; }
+  label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
+  input, textarea, select {
+    width: 100%; padding: 7px 9px; border: 1px solid var(--line); border-radius: 6px;
+    font: inherit; color: var(--ink); background: var(--surface);
+  }
+  textarea { resize: vertical; min-height: 64px; }
+  .actions { display: flex; gap: 8px; }
+  .out { margin-top: 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .out[hidden] { display: none; }
+  .out-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+    padding: 6px 8px 6px 10px; background: var(--bg); border-bottom: 1px solid var(--line);
+    font-size: 12.5px; color: var(--muted);
+  }
+  .status-ok { color: var(--ok); font-weight: 600; }
+  .status-err { color: var(--error); font-weight: 600; }
+  .out-body {
+    max-height: 340px; overflow: auto; padding: 10px;
+    overscroll-behavior: contain; background: var(--surface);
+  }
+  .out-body pre {
+    margin: 0; font: 12.5px/1.5 var(--mono);
+    white-space: pre-wrap; overflow-wrap: anywhere;
+  }
+  .out-body img, .out-body video { display: block; max-width: 100%; max-height: 320px; margin: 0 auto; border-radius: 4px; }
+  .out-body audio { width: 100%; }
+  .out-body a { color: var(--accent); }
+  .empty { grid-column: 1 / -1; color: var(--muted); text-align: center; padding: 40px 0; }
+  #toast {
+    position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 6px; font-size: 13px;
+    opacity: 0; pointer-events: none; transition: opacity .15s;
+  }
+  #toast.show { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+</style>
 </head>
 <body>
-  <div id="app"></div>
+<header>
+  <div class="bar">
+    <h1>API Panel</h1>
+    <input id="search" type="search" placeholder="Search endpoints" aria-label="Search endpoints">
+  </div>
+  <div class="chips" id="chips"></div>
+</header>
+<main id="grid"></main>
+<div id="toast" role="status"></div>
 
-  <script>
-    const EP_LIST = [
-      { id: 'gemini', category: 'ai', title: 'Gemini AI', method: 'GET', path: '/api/gemini', result: { type: 'text', field: 'text' }, params: [
-        { name: 'q', type: 'textarea', label: 'Pertanyaan', required: true, placeholder: 'Tulis pertanyaan…', value: '' }
-      ] },
-      { id: 'pinterest', category: 'search', title: 'Pinterest Search', method: 'GET', path: '/api/search/pinterest', result: { type: 'text', field: 'count' }, params: [
-        { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, placeholder: 'Contoh: anime, kucing', value: '' }
-      ] },
-      { id: 'tiktok', category: 'download', title: 'TikTok Search', method: 'GET', path: '/api/download/tiktok', result: { type: 'text', field: 'count' }, params: [
-        { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, placeholder: 'Contoh: kucing lucu', value: '' }
-      ] },
-      { id: 'tiktokdl', category: 'download', title: 'TikTok Download', method: 'GET', path: '/api/download/tiktokdl', result: { type: 'text', field: 'status' }, params: [
-        { name: 'url', type: 'text', label: 'Link TikTok', required: true, placeholder: 'https://www.tiktok.com/@user/video/...', value: '' }
-      ] },
-      { id: 'igdl', category: 'download', title: 'Instagram Download', method: 'GET', path: '/api/download/instagram', result: { type: 'text', field: 'status' }, params: [
-        { name: 'url', type: 'text', label: 'Link Instagram', required: true, placeholder: 'https://www.instagram.com/reel/...', value: '' }
-      ] },
-      { id: 'ytdl', category: 'download', title: 'YouTube Download', method: 'GET', path: '/api/download/youtube', result: { type: 'text', field: 'status' }, params: [
-        { name: 'url', type: 'text', label: 'Link YouTube', required: true, placeholder: 'https://www.youtube.com/watch?v=...', value: '' }
-      ] },
-      { id: 'wacg', category: 'tools', title: 'Warna Acak', method: 'GET', path: '/api/tools/color', result: { type: 'text', field: 'hex' }, params: [] },
-      { id: 'qrgen', category: 'tools', title: 'Buat QR Code', method: 'GET', path: '/api/tools/qr', result: { type: 'image', field: 'url' }, params: [
-        { name: 'text', type: 'textarea', label: 'Isi QR', required: true, placeholder: 'Tulis teks atau link…', value: '' }
-      ] }
-    ];
-    const LABELS = { ai: 'Kecerdasan Buatan', search: 'Pencarian', download: 'Unduhan', tools: 'Alat Bantu' };
+<script>
+const MAX_SHOWN = 200000;
+const state = { plugins: [], category: "all", query: "" };
 
-    const el = (tag, cls, text) => {
-      const n = document.createElement(tag);
-      if (cls) n.className = cls;
-      if (text != null) n.textContent = text;
-      return n;
-    };
-    const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+function el(tag, props, ...kids) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(props || {})) {
+    if (k === "class") n.className = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) n.setAttribute(k, v);
+  }
+  for (const c of kids.flat()) if (c != null) n.append(c);
+  return n;
+}
 
-    function render() {
-      const app = document.getElementById('app');
-      app.innerHTML = '';
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 1400);
+}
 
-      const nav = el('nav');
-      nav.append(el('h1', null, 'BmskyAPIs'));
-      app.append(nav);
+async function copy(text, label) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = el("textarea", { style: "position:fixed;opacity:0" });
+    ta.value = text;
+    document.body.append(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  }
+  toast(label + " copied");
+}
 
-      const groups = {};
-      EP_LIST.forEach(ep => {
-        if (!groups[ep.category]) groups[ep.category] = [];
-        groups[ep.category].push(ep);
+function fmtSize(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1048576).toFixed(1) + " MB";
+}
+
+const TEXT_TYPE = /^text\/|json|xml|javascript|x-www-form-urlencoded/i;
+
+function card(p) {
+  const inputs = {};
+  const endpoint = el("code", { class: "endpoint" });
+  const fields = el("div", { class: "fields" });
+  const status = el("span");
+  const meta = el("span");
+  const body = el("div", { class: "out-body" });
+  const copyOut = el("button", { class: "btn", type: "button" }, "Copy response");
+  const out = el("div", { class: "out", hidden: "" },
+    el("div", { class: "out-head" }, el("span", {}, status, " ", meta), copyOut),
+    body
+  );
+  const runBtn = el("button", { class: "btn primary", type: "button" }, "Run");
+  let blobUrl = null;
+  let copyValue = "";
+
+  const buildUrl = () => {
+    const q = new URLSearchParams();
+    for (const prm of p.params) {
+      const v = inputs[prm.name].value.trim();
+      if (v) q.set(prm.name, v);
+    }
+    const s = q.toString();
+    return location.origin + "/api/" + encodeURIComponent(p.name) + (s ? "?" + s : "");
+  };
+  const refresh = () => { endpoint.textContent = buildUrl(); };
+
+  for (const prm of p.params) {
+    let input;
+    if (prm.type === "select") {
+      input = el("select", {}, (prm.options || []).map((o) => el("option", { value: o }, o)));
+      if (prm.default !== undefined) input.value = prm.default;
+    } else if (prm.type === "textarea") {
+      input = el("textarea", { placeholder: prm.example || "" });
+    } else {
+      input = el("input", {
+        type: prm.type === "number" ? "number" : "text",
+        placeholder: prm.example || "",
+        autocomplete: "off",
       });
+      if (prm.default !== undefined) input.value = prm.default;
+    }
+    input.addEventListener("input", refresh);
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey && input.tagName !== "TEXTAREA") run();
+    });
+    inputs[prm.name] = input;
+    fields.append(el("label", {}, (prm.label || prm.name) + (prm.required === false ? " (optional)" : ""), input));
+  }
 
-      for (const [cat, eps] of Object.entries(groups)) {
-        const sec = el('section', 'cat');
-        sec.append(el('h2', 'cat-title', LABELS[cat] || cap(cat)));
-        eps.forEach(ep => {
-          const wrap = el('div', 'ep-wrap');
-          const btn = el('button', 'ep-btn', ep.title);
-          wrap.append(btn);
-          sec.append(wrap);
-          let pg = null;
-          btn.addEventListener('click', () => {
-            document.querySelectorAll('.ep-wrap.open').forEach(w => { if (w !== wrap) w.classList.remove('open'); });
-            wrap.classList.toggle('open');
-            if (!pg) { pg = createPlayground(ep); wrap.append(pg); }
-          });
-        });
-        app.append(sec);
+  async function run() {
+    for (const prm of p.params) {
+      if (prm.required !== false && prm.default === undefined && !inputs[prm.name].value.trim()) {
+        inputs[prm.name].focus();
+        return toast((prm.label || prm.name) + " is required");
       }
     }
+    const url = buildUrl();
+    runBtn.disabled = true;
+    runBtn.textContent = "Running";
+    const t0 = performance.now();
+    if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+    try {
+      const r = await fetch(url);
+      const blob = await r.blob();
+      const type = (r.headers.get("content-type") || blob.type || "").toLowerCase();
+      const ms = Math.round(performance.now() - t0);
+      status.className = r.ok ? "status-ok" : "status-err";
+      status.textContent = r.status + " " + (r.statusText || "");
+      meta.textContent = (type.split(";")[0] || "unknown") + " | " + fmtSize(blob.size) + " | " + ms + " ms";
+      body.replaceChildren();
+      copyValue = url;
 
-    function createPlayground(ep) {
-      const values = {};
-      let busy = false, cooldown = null;
-
-      const root = el('div', 'pg');
-      root.innerHTML =
-        '<div class="pg-form"><div class="fields"></div>' +
-        '<button class="run" type="button">Kirim permintaan</button>' +
-        '<p class="hint" role="status"></p></div>' +
-        '<div class="pg-out">' +
-          '<div class="status"><span class="chip"></span><a class="dl" target="_blank" rel="noopener" hidden>Buka hasil</a></div>' +
-          '<details open><summary>Detail teknis</summary><div class="tech">' +
-            '<div class="tech-h"><span>URL</span><button class="ghost copy" type="button">Salin</button></div><pre class="curl"></pre>' +
-            '<div class="tech-h"><span>Hasil</span></div><pre class="out">Belum ada hasil.</pre>' +
-          '</div></details>' +
-        '</div>';
-
-      const q = (sel) => root.querySelector(sel);
-      const runBtn = q('.run'), hintEl = q('.hint');
-      const chip = q('.chip'), dl = q('.dl'), out = q('.out'), curlEl = q('.curl');
-
-      const val = (name) => String(values[name] || '').replace(/\s+/g, ' ').trim();
-      const hint = (t) => { hintEl.textContent = t || ''; };
-
-      ep.params.forEach(p => {
-        const wrap = el('div', 'f');
-        const id = ep.id + '-' + p.name;
-        const lab = el('label', null, p.label + (p.required ? '' : ' (opsional)'));
-        lab.htmlFor = id;
-        let inp;
-        if (p.type === 'select') {
-          inp = el('select');
-          (p.options || []).forEach(opt => {
-            const o = el('option', null, opt.label || opt);
-            o.value = opt.value || opt;
-            if (opt.value === p.value) o.selected = true;
-            inp.append(o);
-          });
-        } else if (p.type === 'textarea') {
-          inp = el('textarea');
-          inp.rows = 3;
+      if (/^(image|video|audio)\//.test(type)) {
+        blobUrl = URL.createObjectURL(blob);
+        const tag = type.startsWith("image/") ? "img" : type.startsWith("video/") ? "video" : "audio";
+        body.append(el(tag, tag === "img" ? { src: blobUrl, alt: "response" } : { src: blobUrl, controls: "" }));
+        copyOut.textContent = "Copy endpoint";
+      } else {
+        let text = null;
+        if (TEXT_TYPE.test(type) || !type) {
+          text = await blob.text();
+          if (!type && text.includes("\u0000")) text = null;
+        }
+        if (text !== null) {
+          let shown = text;
+          if (/json/.test(type) || /^\s*[\[{]/.test(text)) {
+            try { shown = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+          }
+          copyValue = shown;
+          const clipped = shown.length > MAX_SHOWN;
+          body.append(el("pre", {}, clipped ? shown.slice(0, MAX_SHOWN) + "\n\n[Output truncated. Use Copy response for the full text.]" : shown));
+          copyOut.textContent = "Copy response";
         } else {
-          inp = el('input');
-          inp.type = p.type || 'text';
+          blobUrl = URL.createObjectURL(blob);
+          body.append(el("a", { href: blobUrl, download: p.name }, "Download file (" + fmtSize(blob.size) + ")"));
+          copyOut.textContent = "Copy endpoint";
         }
-        inp.id = id;
-        inp.placeholder = p.placeholder || '';
-        inp.value = p.value || '';
-        values[p.name] = inp.value;
-
-        let counter = null;
-        if (p.max) counter = el('span', 'count', inp.value.length + '/' + p.max);
-        inp.addEventListener('input', () => {
-          values[p.name] = inp.value;
-          if (counter) counter.textContent = inp.value.length + '/' + p.max;
-          updateCurl();
-        });
-        if (p.type === 'textarea') {
-          inp.addEventListener('keydown', ev => {
-            if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); run(); }
-          });
-        }
-        wrap.append(lab, inp);
-        if (counter) wrap.append(counter);
-        q('.fields').append(wrap);
-      });
-
-      function queryString() {
-        const s = new URLSearchParams();
-        ep.params.forEach(p => { const v = val(p.name); if (v) s.set(p.name, v); });
-        return s.toString();
       }
-
-      function updateCurl() {
-        const params = ep.params.filter(p => val(p.name)).map(p => p.name + '=' + encodeURIComponent(val(p.name))).join('&');
-        curlEl.textContent = location.origin + ep.path + (params ? '?' + params : '');
-      }
-
-      function setButton(label, disabled) { runBtn.textContent = label; runBtn.disabled = disabled; }
-      function startCooldown(sec) {
-        clearInterval(cooldown);
-        let left = Math.max(1, Math.ceil(sec));
-        setButton('Tunggu ' + left + ' dtk', true);
-        cooldown = setInterval(() => {
-          left--;
-          if (left <= 0) { clearInterval(cooldown); setButton('Kirim permintaan', false); return; }
-          setButton('Tunggu ' + left + ' dtk', true);
-        }, 1000);
-      }
-
-      async function run() {
-        if (busy) return;
-        busy = true;
-        setButton('Memproses…', true);
-        chip.textContent = ''; chip.className = 'chip';
-        dl.hidden = true;
-        out.textContent = 'Memproses permintaan…';
-        hint('');
-
-        const t0 = performance.now();
-        let status = 0, json = null, retry = 0;
-        try {
-          const r = await fetch(ep.path + '?' + queryString(), { headers: { accept: 'application/json' } });
-          status = r.status;
-          retry = Number(r.headers.get('retry-after')) || 0;
-          const txt = await r.text();
-          try { json = JSON.parse(txt); }
-          catch (e) { json = { success: false, error: { message: 'Respons tidak valid' } }; }
-        } catch (e) {
-          json = { success: false, error: { message: 'Tidak dapat terhubung ke server' } };
-        }
-        const took = ((performance.now() - t0) / 1000).toFixed(1);
-
-        out.textContent = JSON.stringify(json, null, 2);
-
-        if (json && json.success) {
-          chip.className = 'chip ok';
-          chip.textContent = status + ' · ' + took + ' dtk';
-          const findUrl = (obj) => {
-            if (!obj) return null;
-            if (typeof obj === 'string' && obj.startsWith('http')) return obj;
-            if (Array.isArray(obj)) return findUrl(obj[0]);
-            if (typeof obj === 'object') for (const v of Object.values(obj)) { const u = findUrl(v); if (u) return u; }
-            return null;
-          };
-          const url = findUrl(json.data);
-          if (url) { dl.href = url; dl.hidden = false; }
-          startCooldown(5);
-        } else {
-          const m = (json && json.error && json.error.message) || 'Permintaan gagal.';
-          chip.className = 'chip bad';
-          chip.textContent = (status || 'ERR') + ' · ' + took + ' dtk';
-          hint(m);
-          startCooldown(status === 429 ? (retry || 60) : 3);
-        }
-        busy = false;
-      }
-
-      runBtn.addEventListener('click', run);
-      q('.copy').addEventListener('click', async ev => {
-        const b = ev.currentTarget;
-        try { await navigator.clipboard.writeText(curlEl.textContent); b.textContent = 'Tersalin'; }
-        catch (e) { b.textContent = 'Gagal menyalin'; }
-        setTimeout(() => { b.textContent = 'Salin'; }, 1500);
-      });
-
-      updateCurl();
-      return root;
+    } catch (e) {
+      status.className = "status-err";
+      status.textContent = "Request failed";
+      meta.textContent = "";
+      body.replaceChildren(el("pre", {}, String(e.message || e)));
+      copyValue = String(e.message || e);
+      copyOut.textContent = "Copy response";
+    } finally {
+      out.hidden = false;
+      runBtn.disabled = false;
+      runBtn.textContent = "Run";
     }
+  }
 
-    render();
-  </script>
+  runBtn.addEventListener("click", run);
+  copyOut.addEventListener("click", () => copy(copyValue, copyOut.textContent.replace("Copy ", "")));
+  refresh();
+
+  return el("section", { class: "card" },
+    el("h2", {}, p.name, el("span", { class: "tag" }, p.category + " | " + p.method)),
+    el("p", { class: "desc" }, p.description || ""),
+    el("div", { class: "row" }, endpoint,
+      el("button", { class: "btn", type: "button", onclick: () => copy(buildUrl(), "Endpoint") }, "Copy endpoint")),
+    fields,
+    el("div", { class: "actions" }, runBtn),
+    out
+  );
+}
+
+function render() {
+  const q = state.query.toLowerCase();
+  const list = state.plugins.filter((p) =>
+    (state.category === "all" || p.category === state.category) &&
+    (!q || (p.name + " " + p.description + " " + p.category).toLowerCase().includes(q))
+  );
+  const grid = document.getElementById("grid");
+  grid.replaceChildren(...(list.length ? list.map(card) : [el("div", { class: "empty" }, "No endpoints found. Add a file to the plugins folder.")]));
+}
+
+function renderChips() {
+  const cats = ["all", ...new Set(state.plugins.map((p) => p.category))];
+  document.getElementById("chips").replaceChildren(
+    ...cats.map((c) => el("button", {
+      class: "chip", type: "button", "aria-pressed": String(c === state.category),
+      onclick: () => { state.category = c; renderChips(); render(); },
+    }, c))
+  );
+}
+
+document.getElementById("search").addEventListener("input", (e) => {
+  state.query = e.target.value;
+  render();
+});
+
+fetch("/meta/plugins")
+  .then((r) => r.json())
+  .then((data) => { state.plugins = data; renderChips(); render(); })
+  .catch(() => {
+    document.getElementById("grid").replaceChildren(el("div", { class: "empty" }, "Could not load plugins from the server."));
+  });
+</script>
 </body>
 </html>
