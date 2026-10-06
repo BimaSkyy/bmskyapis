@@ -54,9 +54,22 @@
       ] },
       { id: 'tiktok', category: 'download', title: 'TikTok Search', method: 'GET', path: '/api/download/tiktok', result: { type: 'text', field: 'count' }, params: [
         { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, placeholder: 'Contoh: kucing lucu', value: '' }
+      ] },
+      { id: 'tiktokdl', category: 'download', title: 'TikTok Download', method: 'GET', path: '/api/download/tiktokdl', result: { type: 'text', field: 'status' }, params: [
+        { name: 'url', type: 'text', label: 'Link TikTok', required: true, placeholder: 'https://www.tiktok.com/@user/video/...', value: '' }
+      ] },
+      { id: 'igdl', category: 'download', title: 'Instagram Download', method: 'GET', path: '/api/download/instagram', result: { type: 'text', field: 'status' }, params: [
+        { name: 'url', type: 'text', label: 'Link Instagram', required: true, placeholder: 'https://www.instagram.com/reel/...', value: '' }
+      ] },
+      { id: 'ytdl', category: 'download', title: 'YouTube Download', method: 'GET', path: '/api/download/youtube', result: { type: 'text', field: 'status' }, params: [
+        { name: 'url', type: 'text', label: 'Link YouTube', required: true, placeholder: 'https://www.youtube.com/watch?v=...', value: '' }
+      ] },
+      { id: 'wacg', category: 'tools', title: 'Warna Acak', method: 'GET', path: '/api/tools/color', result: { type: 'text', field: 'hex' }, params: [] },
+      { id: 'qrgen', category: 'tools', title: 'Buat QR Code', method: 'GET', path: '/api/tools/qr', result: { type: 'image', field: 'url' }, params: [
+        { name: 'text', type: 'textarea', label: 'Isi QR', required: true, placeholder: 'Tulis teks atau link…', value: '' }
       ] }
     ];
-    const LABELS = { ai: 'AI', search: 'Pencarian', download: 'Unduhan' };
+    const LABELS = { ai: 'Kecerdasan Buatan', search: 'Pencarian', download: 'Unduhan', tools: 'Alat Bantu' };
 
     const el = (tag, cls, text) => {
       const n = document.createElement(tag);
