@@ -36,7 +36,12 @@ module.exports = async (req, res) => {
   let upstream;
   try {
     upstream = await fetch(url, {
-      headers: { accept: 'application/json' },
+      headers: {
+        accept: 'application/json, text/plain, */*',
+        'user-agent': 'Mozilla/5.0 (compatible; BmskyAPI/1.0)',
+        'referer': 'https://zellrayy.com/',
+        'origin': 'https://zellrayy.com'
+      },
       signal: AbortSignal.timeout(UPSTREAM_TIMEOUT_MS),
     });
   } catch (err) {
@@ -46,35 +51,37 @@ module.exports = async (req, res) => {
     return fail(res, 502, 'UPSTREAM_ERROR', 'Tidak bisa menghubungi layanan Pinterest.');
   }
 
+  const text = await upstream.text();
   let body = null;
   try {
-    body = await upstream.json();
+    body = JSON.parse(text);
   } catch (e) {
-    return fail(res, 502, 'INVALID_RESPONSE', 'Respons dari layanan tidak berformat JSON.');
+    return fail(res, 502, 'INVALID_RESPONSE',
+      `Layanan mengembalikan format tidak valid (HTTP ${upstream.status})`);
   }
 
-  // Debug: tampilkan apa yang diterima
-  console.log('[Pinterest Debug] status:', upstream.status, 'body:', JSON.stringify(body));
+  // Respons error asli dari API
+  if (body?.status === false) {
+    return fail(res, 404, 'NO_RESULT', body.message || `Tidak ada hasil untuk: ${query}`);
+  }
 
-  // Lebih fleksibel: terima berbagai format respons
+  // Ambil hasil dari berbagai kemungkinan lokasi
   let results = [];
-  if (Array.isArray(body)) {
-    results = body;
-  } else if (Array.isArray(body?.result)) {
-    results = body.result;
-  } else if (Array.isArray(body?.data)) {
-    results = body.data;
-  } else if (body?.status === false) {
-    // API kembalikan status:false = pesan error
-    return fail(res, 404, 'NO_RESULT', body.message || 'Tidak ada hasil untuk: ' + query);
-  }
+  if (Array.isArray(body)) results = body;
+  else if (Array.isArray(body?.result)) results = body.result;
+  else if (Array.isArray(body?.data)) results = body.data;
+  else if (Array.isArray(body?.results)) results = body.results;
 
   if (results.length === 0) {
-    return fail(res, 404, 'NO_RESULT', 'Tidak ada hasil untuk: ' + query);
+    return fail(res, 404, 'NO_RESULT', `Tidak ada hasil untuk: ${query}`);
   }
 
   // Filter yang punya gambar
-  const items = results.filter((it) => it.image || it.thumbnail || it.img).slice(0, 5);
+  const items = results.filter((it) => {
+    const img = it.image || it.thumbnail || it.img || it.url_img;
+    return img && typeof img === 'string' && img.length > 10;
+  }).slice(0, 5);
+
   if (items.length === 0) {
     return fail(res, 404, 'NO_IMAGE_RESULT', 'Ada hasil tapi tidak ada gambar yang valid.');
   }
@@ -85,10 +92,10 @@ module.exports = async (req, res) => {
       query,
       count: items.length,
       results: items.map((it) => ({
-        title: it.title || it.caption || query,
-        url: it.url || it.link || 'https://pinterest.com',
-        image: it.image || it.thumbnail || it.img,
-        username: it.username || it.author || 'Pinterest'
+        title: it.title || it.caption || it.name || query,
+        url: it.url || it.link || it.source || 'https://pinterest.com',
+        image: it.image || it.thumbnail || it.img || it.url_img,
+        username: it.username || it.author || it.pinner || 'Pinterest'
       }))
     }
   });
