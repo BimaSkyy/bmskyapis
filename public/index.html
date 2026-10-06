@@ -31,33 +31,46 @@
     border-bottom: 1px solid var(--line);
     padding: 12px 16px;
   }
-  .bar { max-width: 1100px; margin: 0 auto; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; }
+  .bar { max-width: 760px; margin: 0 auto; display: flex; gap: 12px; align-items: center; }
+  h1 { font-size: 17px; margin: 0; font-weight: 650; letter-spacing: -0.01em; white-space: nowrap; }
   #search {
-    flex: 1 1 200px; min-width: 0;
+    flex: 1; min-width: 0;
     padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px;
     font: inherit; background: var(--bg);
   }
-  #search:focus, input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .chips { max-width: 1100px; margin: 10px auto 0; display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip {
-    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
-    padding: 4px 12px; border-radius: 999px; font: inherit; font-size: 13px; cursor: pointer;
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  main { max-width: 760px; margin: 0 auto; padding: 16px; display: grid; gap: 10px; }
+
+  /* Categories */
+  .cat { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .cat-btn {
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    padding: 14px; border: 0; background: none; color: inherit;
+    font: inherit; font-weight: 650; text-align: left; cursor: pointer;
+    text-transform: capitalize;
   }
-  .chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
-  main {
-    max-width: 1100px; margin: 0 auto; padding: 16px;
-    display: grid; gap: 14px;
-    grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
-    align-items: start;
+  .cat-btn:hover { background: var(--bg); }
+  .cat-count { margin-left: auto; font-weight: 400; font-size: 13px; color: var(--muted); text-transform: none; }
+  .chev {
+    width: 8px; height: 8px; flex: none;
+    border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted);
+    transform: rotate(-45deg); transition: transform .12s;
   }
-  .card {
-    background: var(--surface); border: 1px solid var(--line); border-radius: 8px;
-    padding: 14px; min-width: 0;
+  .cat-btn[aria-expanded="true"] .chev { transform: rotate(45deg); }
+  .feat-list[hidden] { display: none; }
+
+  /* Feature rows */
+  .feat {
+    width: 100%; display: flex; align-items: baseline; gap: 10px;
+    padding: 11px 14px; border: 0; border-top: 1px solid var(--line);
+    background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
   }
-  .card h2 { margin: 0; font-size: 16px; font-weight: 650; display: flex; gap: 8px; align-items: baseline; }
+  .feat:hover { background: var(--bg); }
+  .feat-name { font-weight: 600; }
+  .feat-desc { color: var(--muted); font-size: 14px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tag { font-size: 12px; color: var(--muted); font-weight: 400; }
-  .desc { margin: 2px 0 10px; color: var(--muted); font-size: 14px; }
+
+  /* Buttons and fields */
   .row { display: flex; gap: 6px; align-items: stretch; }
   .endpoint {
     flex: 1; min-width: 0; font: 12.5px/1.4 var(--mono);
@@ -73,6 +86,7 @@
   button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   button.primary:hover { background: #0b574b; }
   button.btn:disabled { opacity: .6; cursor: default; }
+  .desc { margin: 0 0 10px; color: var(--muted); font-size: 14px; }
   .fields { display: grid; gap: 8px; margin: 12px 0; }
   label { display: grid; gap: 3px; font-size: 13px; color: var(--muted); }
   input, textarea, select {
@@ -80,7 +94,8 @@
     font: inherit; color: var(--ink); background: var(--surface);
   }
   textarea { resize: vertical; min-height: 64px; }
-  .actions { display: flex; gap: 8px; }
+
+  /* Response panel (scrolls inside) */
   .out { margin-top: 12px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
   .out[hidden] { display: none; }
   .out-head {
@@ -90,25 +105,37 @@
   }
   .status-ok { color: var(--ok); font-weight: 600; }
   .status-err { color: var(--error); font-weight: 600; }
-  .out-body {
-    max-height: 340px; overflow: auto; padding: 10px;
-    overscroll-behavior: contain; background: var(--surface);
-  }
-  .out-body pre {
-    margin: 0; font: 12.5px/1.5 var(--mono);
-    white-space: pre-wrap; overflow-wrap: anywhere;
-  }
-  .out-body img, .out-body video { display: block; max-width: 100%; max-height: 320px; margin: 0 auto; border-radius: 4px; }
+  .out-body { max-height: 320px; overflow: auto; padding: 10px; overscroll-behavior: contain; }
+  .out-body pre { margin: 0; font: 12.5px/1.5 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .out-body img, .out-body video { display: block; max-width: 100%; max-height: 300px; margin: 0 auto; border-radius: 4px; }
   .out-body audio { width: 100%; }
   .out-body a { color: var(--accent); }
-  .empty { grid-column: 1 / -1; color: var(--muted); text-align: center; padding: 40px 0; }
+  .empty { color: var(--muted); text-align: center; padding: 40px 0; }
+
+  /* Popup */
+  dialog {
+    border: 0; border-radius: 10px; padding: 0;
+    width: min(640px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px);
+    background: var(--surface); color: var(--ink);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, .25);
+  }
+  dialog::backdrop { background: rgba(20, 26, 30, .5); }
+  .dlg-wrap { display: flex; flex-direction: column; max-height: calc(100dvh - 24px); }
+  .dlg-head {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 12px 14px; border-bottom: 1px solid var(--line);
+  }
+  .dlg-head h2 { margin: 0; font-size: 16px; font-weight: 650; }
+  .dlg-body { overflow: auto; padding: 14px; overscroll-behavior: contain; }
+
   #toast {
     position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
     background: var(--ink); color: #fff; padding: 7px 14px; border-radius: 6px; font-size: 13px;
-    opacity: 0; pointer-events: none; transition: opacity .15s;
+    opacity: 0; pointer-events: none; transition: opacity .15s; z-index: 10;
   }
   #toast.show { opacity: 1; }
-  @media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+  @media (prefers-reduced-motion: reduce) { #toast, .chev { transition: none; } }
 </style>
 </head>
 <body>
@@ -117,14 +144,30 @@
     <h1>API Panel</h1>
     <input id="search" type="search" placeholder="Search endpoints" aria-label="Search endpoints">
   </div>
-  <div class="chips" id="chips"></div>
 </header>
-<main id="grid"></main>
+<main id="list"></main>
+
+<dialog id="dlg" aria-labelledby="dlg-title">
+  <div class="dlg-wrap">
+    <div class="dlg-head">
+      <div>
+        <h2 id="dlg-title"></h2>
+        <span class="tag" id="dlg-meta"></span>
+      </div>
+      <button class="btn" id="dlg-close" type="button">Close</button>
+    </div>
+    <div class="dlg-body" id="dlg-body"></div>
+  </div>
+</dialog>
+
 <div id="toast" role="status"></div>
 
 <script>
 const MAX_SHOWN = 200000;
-const state = { plugins: [], category: "all", query: "" };
+const TEXT_TYPE = /^text\/|json|xml|javascript|x-www-form-urlencoded/i;
+const state = { plugins: [], query: "", open: new Set() };
+const dlg = document.getElementById("dlg");
+let disposeActive = null;
 
 function el(tag, props, ...kids) {
   const n = document.createElement(tag);
@@ -140,6 +183,8 @@ function el(tag, props, ...kids) {
 let toastTimer;
 function toast(msg) {
   const t = document.getElementById("toast");
+  // The popup lives in the top layer, so the toast must move inside it while it is open.
+  (dlg.open ? dlg : document.body).append(t);
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toastTimer);
@@ -152,7 +197,7 @@ async function copy(text, label) {
   } catch {
     const ta = el("textarea", { style: "position:fixed;opacity:0" });
     ta.value = text;
-    document.body.append(ta);
+    (dlg.open ? dlg : document.body).append(ta);
     ta.select();
     document.execCommand("copy");
     ta.remove();
@@ -166,9 +211,8 @@ function fmtSize(n) {
   return (n / 1048576).toFixed(1) + " MB";
 }
 
-const TEXT_TYPE = /^text\/|json|xml|javascript|x-www-form-urlencoded/i;
-
-function card(p) {
+/* ---------- Playground (shown inside the popup) ---------- */
+function buildPlayground(p) {
   const inputs = {};
   const endpoint = el("code", { class: "endpoint" });
   const fields = el("div", { class: "fields" });
@@ -194,6 +238,7 @@ function card(p) {
     return location.origin + "/api/" + encodeURIComponent(p.name) + (s ? "?" + s : "");
   };
   const refresh = () => { endpoint.textContent = buildUrl(); };
+  const freeBlob = () => { if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; } };
 
   for (const prm of p.params) {
     let input;
@@ -229,7 +274,7 @@ function card(p) {
     runBtn.disabled = true;
     runBtn.textContent = "Running";
     const t0 = performance.now();
-    if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+    freeBlob();
     try {
       const r = await fetch(url);
       const blob = await r.blob();
@@ -285,35 +330,75 @@ function card(p) {
   copyOut.addEventListener("click", () => copy(copyValue, copyOut.textContent.replace("Copy ", "")));
   refresh();
 
-  return el("section", { class: "card" },
-    el("h2", {}, p.name, el("span", { class: "tag" }, p.category + " | " + p.method)),
-    el("p", { class: "desc" }, p.description || ""),
+  const node = el("div", {},
+    p.description ? el("p", { class: "desc" }, p.description) : null,
     el("div", { class: "row" }, endpoint,
       el("button", { class: "btn", type: "button", onclick: () => copy(buildUrl(), "Endpoint") }, "Copy endpoint")),
     fields,
-    el("div", { class: "actions" }, runBtn),
+    runBtn,
     out
   );
+  return { node, dispose: freeBlob };
 }
 
+function openPlayground(p) {
+  const pg = buildPlayground(p);
+  disposeActive = pg.dispose;
+  document.getElementById("dlg-title").textContent = p.name;
+  document.getElementById("dlg-meta").textContent = p.category + " | " + p.method;
+  document.getElementById("dlg-body").replaceChildren(pg.node);
+  dlg.showModal();
+  const first = pg.node.querySelector("input, textarea, select");
+  if (first) first.focus();
+}
+
+dlg.addEventListener("close", () => {
+  if (disposeActive) disposeActive();
+  disposeActive = null;
+  document.getElementById("dlg-body").replaceChildren();
+});
+dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+document.getElementById("dlg-close").addEventListener("click", () => dlg.close());
+
+/* ---------- Category list ---------- */
 function render() {
-  const q = state.query.toLowerCase();
-  const list = state.plugins.filter((p) =>
-    (state.category === "all" || p.category === state.category) &&
-    (!q || (p.name + " " + p.description + " " + p.category).toLowerCase().includes(q))
-  );
-  const grid = document.getElementById("grid");
-  grid.replaceChildren(...(list.length ? list.map(card) : [el("div", { class: "empty" }, "No endpoints found. Add a file to the plugins folder.")]));
-}
+  const q = state.query.trim().toLowerCase();
+  const groups = new Map();
+  for (const p of [...state.plugins].sort((a, b) => a.name.localeCompare(b.name))) {
+    if (q && !(p.name + " " + (p.description || "") + " " + p.category).toLowerCase().includes(q)) continue;
+    if (!groups.has(p.category)) groups.set(p.category, []);
+    groups.get(p.category).push(p);
+  }
 
-function renderChips() {
-  const cats = ["all", ...new Set(state.plugins.map((p) => p.category))];
-  document.getElementById("chips").replaceChildren(
-    ...cats.map((c) => el("button", {
-      class: "chip", type: "button", "aria-pressed": String(c === state.category),
-      onclick: () => { state.category = c; renderChips(); render(); },
-    }, c))
-  );
+  const list = document.getElementById("list");
+  if (!groups.size) {
+    list.replaceChildren(el("div", { class: "empty" },
+      state.plugins.length ? "No endpoints match your search." : "No endpoints yet. Add a file to the plugins folder."));
+    return;
+  }
+
+  const sections = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([cat, items]) => {
+    const expanded = q ? true : state.open.has(cat);
+    const panel = el("div", { class: "feat-list", id: "cat-" + cat, hidden: expanded ? null : "" },
+      items.map((p) => el("button", { class: "feat", type: "button", onclick: () => openPlayground(p) },
+        el("span", { class: "feat-name" }, p.name),
+        el("span", { class: "feat-desc" }, p.description || ""),
+        el("span", { class: "tag" }, p.method)
+      ))
+    );
+    const btn = el("button", {
+      class: "cat-btn", type: "button",
+      "aria-expanded": String(expanded), "aria-controls": "cat-" + cat,
+      onclick: () => {
+        const open = btn.getAttribute("aria-expanded") !== "true";
+        btn.setAttribute("aria-expanded", String(open));
+        panel.hidden = !open;
+        if (open) state.open.add(cat); else state.open.delete(cat);
+      },
+    }, el("span", { class: "chev" }), cat, el("span", { class: "cat-count" }, items.length + (items.length === 1 ? " endpoint" : " endpoints")));
+    return el("section", { class: "cat" }, btn, panel);
+  });
+  list.replaceChildren(...sections);
 }
 
 document.getElementById("search").addEventListener("input", (e) => {
@@ -323,9 +408,9 @@ document.getElementById("search").addEventListener("input", (e) => {
 
 fetch("/meta/plugins")
   .then((r) => r.json())
-  .then((data) => { state.plugins = data; renderChips(); render(); })
+  .then((data) => { state.plugins = data; render(); })
   .catch(() => {
-    document.getElementById("grid").replaceChildren(el("div", { class: "empty" }, "Could not load plugins from the server."));
+    document.getElementById("list").replaceChildren(el("div", { class: "empty" }, "Could not load plugins from the server."));
   });
 </script>
 </body>
