@@ -119,4 +119,10 @@ app.get("/api/:name", async (req, res) => {
 });
 
 syncPlugins();
-app.listen(PORT, () => console.log(`Panel running on http://localhost:${PORT}`));
+
+// Local / Termux: node server.js. On Vercel the app is imported by api/index.js.
+if (require.main === module) {
+  app.listen(PORT, () => console.log(`Panel running on http://localhost:${PORT}`));
+}
+
+module.exports = app;
