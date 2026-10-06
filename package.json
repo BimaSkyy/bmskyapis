@@ -1,0 +1,9 @@
+{
+  "name": "bmskyapis",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BmSkyApis - REST API ringan dengan playground",
+  "engines": {
+    "node": ">=18"
+  }
+}
