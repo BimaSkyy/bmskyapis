@@ -219,12 +219,47 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
 
     const q = (s) => root.querySelector(s);
     const runBtn = q('.run'), hintEl = q('.hint'), stage = q('.stage'), msgEl = q('.msg');
-    const video = q('video'), audio = q('audio'), chip = q('.chip'), dl = q('.dl'), out = q('.out');
+    const chip = q('.chip'), dl = q('.dl'), out = q('.out');
     const RES = ep.result;
-    const isText = RES.type === 'text';
-    const reply = q('.reply');
-    if (isText) { stage.hidden = true; reply.hidden = false; }
-    const say = (t) => { (isText ? reply : msgEl).textContent = t; };
+    const resultArea = q('.result-area') || Object.assign(document.createElement('div'), { className: 'result-area' });
+    if (!q('.result-area')) { out.before(resultArea); out.style.display = 'none'; }
+    resultArea.innerHTML = '';
+    resultArea.style.cssText = 'margin: 1em 0; padding: 1em; background: #1a1a1a; border-radius: 8px; word-break: break-all;';
+
+    // Tampilkan hasil otomatis: gambar/video/JSON
+    const showResult = (data) => {
+      // Gambar tunggal
+      if (typeof data === 'string' && (data.startsWith('http') || data.startsWith('data:image/')) && /\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i.test(data) || data.startsWith('data:image/')) {
+        const img = Object.assign(document.createElement('img'), { src: data });
+        img.style.cssText = 'max-width: 100%; border-radius: 6px;';
+        resultArea.append(img);
+        return true;
+      }
+      // Video
+      if (typeof data === 'string' && /\.(mp4|webm)(\?|$)/i.test(data)) {
+        const vid = Object.assign(document.createElement('video'), { src: data, controls: true });
+        vid.style.cssText = 'max-width: 100%; border-radius: 6px;';
+        resultArea.append(vid);
+        return true;
+      }
+      // Array gambar
+      if (Array.isArray(data) && data.every(x => typeof x === 'string' && (x.startsWith('http') || x.startsWith('data:image/')))) {
+        const wrap = Object.assign(document.createElement('div'), { style: 'display: flex; flex-wrap: wrap; gap: 8px;' });
+        data.forEach(url => {
+          const img = Object.assign(document.createElement('img'), { src: url });
+          img.style.cssText = 'max-width: 150px; border-radius: 4px;';
+          wrap.append(img);
+        });
+        resultArea.append(wrap);
+        return true;
+      }
+      // JSON/teks
+      const pre = Object.assign(document.createElement('pre'), { style: 'white-space: pre-wrap; font-size: 13px; line-height: 1.5; margin: 0;' });
+      pre.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      resultArea.append(pre);
+      return false;
+    };
+    const say = (t) => { resultArea.textContent = t; };
 
     const val = (name) => String(values[name] ?? '').replace(/\s+/g, ' ').trim();
     const hint = (t) => { hintEl.textContent = t || ''; };
@@ -280,8 +315,8 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
     }
 
     function updateCurl() {
-      const lines = ep.params.filter((p) => val(p.name)).map((p) => '  --data-urlencode ' + sh(p.name + '=' + val(p.name)));
-      q('.curl').textContent = 'curl -G ' + sh(location.origin + ep.path) + (lines.length ? ' \\\n' + lines.join(' \\\n') : '');
+      const params = ep.params.filter((p) => val(p.name)).map((p) => p.name + '=' + encodeURIComponent(val(p.name))).join('&');
+      q('.curl').textContent = location.origin + ep.path + (params ? '?' + params : '');
     }
 
     function setButton(label, disabled) { runBtn.textContent = label; runBtn.disabled = disabled; }
@@ -330,43 +365,68 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       clearInterval(tick);
 
       const took = ((performance.now() - t0) / 1000).toFixed(1);
-      out.textContent = JSON.stringify(json, null, 2);
-      const mediaUrl = json && json.success && json.data && json.data[RES.field];
+      resultArea.innerHTML = '';
+      dl.hidden = true;
 
-      const isImage = RES.type === 'image';
-      const good = typeof mediaUrl === 'string' && (isText ? mediaUrl.length > 0 : mediaUrl.startsWith('https://') || mediaUrl.startsWith('data:image/'));
+      if (json && json.success) {
+        // Tampilkan hasil otomatis di satu panel
+        const data = json.data;
+        let displayed = false;
 
-      if (good) {
-        if (isText) {
-          reply.textContent = mediaUrl;
-          reply.classList.add('has');
-        } else if (isImage) {
-          const img = document.createElement('img');
-          img.src = mediaUrl;
-          img.style.width = '100%';
-          img.style.height = '100%';
-          img.style.objectFit = 'contain';
-          img.hidden = false;
-          stage.innerHTML = '';
-          stage.append(img);
-          stage.hidden = false;
-          dl.href = mediaUrl;
-          dl.hidden = false;
-        } else {
-          const media = RES.type === 'audio' ? audio : video;
-          media.src = mediaUrl;
-          media.hidden = false;
-          dl.href = mediaUrl;
-          dl.hidden = false;
+        // Gambar tunggal
+        if (typeof data === 'string' && (data.startsWith('http') || data.startsWith('data:image/'))) {
+          const img = Object.assign(document.createElement('img'), { src: data });
+          img.style.cssText = 'max-width: 100%; border-radius: 6px;';
+          resultArea.append(img);
+          dl.href = data; dl.hidden = false; displayed = true;
         }
-        setState(isImage ? 'done' : (RES.type === 'audio' ? 'played' : 'done'));
+        // Cek kolom yang berisi URL gambar/video
+        else if (typeof data === 'object' && data !== null) {
+          // Cari URL di semua kolom data
+          for (const [k, v] of Object.entries(data)) {
+            if (typeof v === 'string' && v.startsWith('http')) {
+              if (/\.(mp4|webm)(\?|$)/i.test(v)) {
+                const vid = Object.assign(document.createElement('video'), { src: v, controls: true });
+                vid.style.cssText = 'max-width: 100%; border-radius: 6px;';
+                resultArea.append(vid);
+                dl.href = v; dl.hidden = false; displayed = true; break;
+              } else if (/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i.test(v) || v.startsWith('data:image/')) {
+                const img = Object.assign(document.createElement('img'), { src: v });
+                img.style.cssText = 'max-width: 100%; border-radius: 6px;';
+                resultArea.append(img);
+                dl.href = v; dl.hidden = false; displayed = true; break;
+              }
+            }
+            // Array gambar
+            if (Array.isArray(v) && v.every(x => typeof x === 'string' && (x.startsWith('http') || x.startsWith('data:image/')))) {
+              const wrap = Object.assign(document.createElement('div'), { style: 'display: flex; flex-wrap: wrap; gap: 8px;' });
+              v.slice(0, 5).forEach(url => {
+                const img = Object.assign(document.createElement('img'), { src: url });
+                img.style.cssText = 'max-width: 150px; border-radius: 4px;';
+                wrap.append(img);
+              });
+              resultArea.append(wrap); displayed = true;
+            }
+          }
+        }
+
+        // Kalau belum tampilkan, tampilkan JSON lengkap
+        if (!displayed) {
+          const pre = Object.assign(document.createElement('pre'), { style: 'white-space: pre-wrap; font-size: 13px; line-height: 1.5; margin: 0;' });
+          pre.textContent = JSON.stringify(json, null, 2);
+          resultArea.append(pre);
+        }
+
+        setState('done');
         chip.className = 'chip ok';
         chip.textContent = status + ' · ' + took + ' dtk';
         startCooldown(5);
       } else {
         const m = (json && json.error && json.error.message) || 'Permintaan gagal.';
-        say(m);
-        if (isText) reply.classList.add('bad');
+        resultArea.innerHTML = '';
+        const pre = Object.assign(document.createElement('pre'), { style: 'color: #ff6b6b; white-space: pre-wrap; margin: 0;' });
+        pre.textContent = m;
+        resultArea.append(pre);
         setState('error');
         chip.className = 'chip bad';
         chip.textContent = (status || 'ERR') + ' · ' + took + ' dtk';
