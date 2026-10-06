@@ -4,6 +4,7 @@ const { rateLimit, fail } = require('../_lib/guard');
 
 const UPSTREAM = 'https://api.omegatech.app/api/ai/clideo';
 const UPSTREAM_TIMEOUT_MS = 55 * 1000;
+const WORD = /^[A-Za-z_-]{1,20}$/;
 
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,14 +31,12 @@ module.exports = async (req, res) => {
 
   const lang = str(q.lang) || 'Id';
   const mood = str(q.mood) || 'EXCITED';
+  if (!WORD.test(lang) || !WORD.test(mood)) {
+    return fail(res, 400, 'INVALID_PARAMETER', 'Parameter lang dan mood hanya boleh huruf, maksimal 20 karakter.');
+  }
 
   const url = new URL(UPSTREAM);
-  url.search = new URLSearchParams({
-    action: 'generate',
-    text,
-    lang,
-    mood
-  }).toString();
+  url.search = new URLSearchParams({ action: 'generate', text, lang, mood }).toString();
 
   let upstream;
   try {
@@ -61,12 +60,8 @@ module.exports = async (req, res) => {
 
   const previewUrl = body && body.success && body.data && body.data.previewUrl;
   if (!upstream.ok || typeof previewUrl !== 'string' || !previewUrl.startsWith('https://')) {
-    return fail(
-      res,
-      502,
-      'GENERATE_FAILED',
-      body?.error || body?.message || 'Gagal membuat suara dari teks tersebut.'
-    );
+    const reason = body && (typeof body.error === 'string' ? body.error : typeof body.message === 'string' ? body.message : '');
+    return fail(res, 502, 'GENERATE_FAILED', reason || 'Gagal membuat suara dari teks tersebut.');
   }
 
   return res.status(200).json({
