@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>BmSkyApis</title>
-<meta name="description" content="REST API ringan untuk fitur AI. Coba langsung di playground.">
+<meta name="description" content="REST API ringan untuk fitur AI.">
 <meta name="theme-color" content="#E9F1F7">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='20' r='9' fill='%23F5A524'/%3E%3Crect y='20' width='32' height='12' fill='%232F6FD6'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,199 +12,100 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
 <style>
 :root{
-  --mist:#E9F1F7; --horizon:#CFE0EE; --ink:#0F2740; --blue:#2F6FD6; --blue-d:#2358B0;
-  --sun:#F5A524; --paper:#fff; --muted:#4F657C; --line:#C3D5E6; --err:#B3261E; --ok:#1B7F4B;
+  --mist:#E9F1F7; --ink:#0F2740; --blue:#2F6FD6; --blue-d:#2358B0; --sun:#F5A524;
+  --paper:#fff; --soft:#F5F9FD; --muted:#4F657C; --line:#C3D5E6; --err:#B3261E; --ok:#1B7F4B;
   --display:"Bricolage Grotesque",system-ui,sans-serif;
   --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--mist);color:var(--ink);font:16px/1.6 var(--body)}
-.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-a{color:var(--blue-d)}
-a:focus-visible,button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto;padding:0 20px}
+button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 
-header{display:flex;justify-content:space-between;align-items:center;padding:20px 0}
-.brand{font:800 20px var(--display);letter-spacing:-.02em;color:var(--ink);text-decoration:none}
-nav a{color:var(--muted);text-decoration:none;margin-left:22px;font-size:15px}
-nav a:hover{color:var(--ink)}
+header{padding:28px 0 0}
+.brand{font:800 18px var(--display);letter-spacing:-.02em}
+h1{font:800 clamp(44px,9vw,80px)/.95 var(--display);letter-spacing:-.04em;margin:44px 0 12px}
+.lead{color:var(--muted);font-size:18px;margin:0 0 36px}
 
-h1{font:800 clamp(46px,10vw,96px)/.95 var(--display);letter-spacing:-.04em;margin:40px 0 14px}
-.lead{max-width:44ch;color:var(--muted);font-size:18px;margin:0 0 40px}
-h2{font:800 clamp(26px,4vw,34px)/1.15 var(--display);letter-spacing:-.02em;margin:0 0 18px}
+/* Kategori */
+.cat{background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-bottom:10px}
+.cat-h{display:flex;align-items:center;width:100%;padding:18px 20px;font:600 20px var(--display);color:var(--ink);
+  background:none;border:0;border-radius:14px;cursor:pointer;text-align:left}
+.cat-h:hover{background:#F4F8FC}
+.cat-n{margin-left:auto;font:14px var(--body);color:var(--muted)}
+.chev{width:9px;height:9px;margin:0 4px 3px 14px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);
+  transform:rotate(45deg);transition:transform .15s}
+[aria-expanded=true]>.chev{transform:rotate(-135deg);margin-bottom:-3px}
+.cat-b{padding:0 14px 14px}
+
+/* Fitur */
+.feat{border:1px solid var(--line);border-radius:10px;background:var(--soft);margin-top:8px}
+.feat-h{display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;font:inherit;color:var(--ink);
+  background:none;border:0;border-radius:10px;cursor:pointer;text-align:left}
+.feat-h:hover{background:#EDF4FB}
+.feat-t{font-weight:600}
+.feat-p{font:13px var(--mono);color:var(--muted)}
+.feat-h .chev{margin-left:auto}
+.feat-b{padding:2px 14px 16px}
 
 /* Playground */
-.pg{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:20px;align-items:start}
-@media(max-width:820px){.pg{grid-template-columns:1fr}}
-.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:20px}
-.eplist{margin-bottom:18px}
-.ep{display:grid;grid-template-columns:1fr auto;gap:2px 10px;width:100%;text-align:left;font:inherit;color:inherit;
-  background:#F2F7FD;border:1px solid var(--blue);border-radius:10px;padding:10px 12px;cursor:pointer;margin-bottom:6px}
-.ep[aria-pressed=false]{background:var(--paper);border-color:var(--line)}
-.ep-t{font-weight:600}
-.ep-c{font-size:13px;color:var(--muted);align-self:center}
-.ep-p{grid-column:1/-1;font:13px var(--mono);color:var(--muted)}
+.pg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
+@media(max-width:720px){.pg{grid-template-columns:1fr}}
 .f{margin-bottom:14px;position:relative}
 .f label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
 .f textarea,.f select{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.f textarea{resize:vertical;min-height:84px}
+.f textarea{resize:vertical;min-height:90px}
 .count{position:absolute;right:10px;bottom:8px;font-size:12px;color:var(--muted);background:#fff}
-.run{width:100%;height:48px;font:600 16px var(--body);color:#fff;background:var(--blue);border:0;border-radius:10px;cursor:pointer}
+.run{width:100%;height:46px;font:600 16px var(--body);color:#fff;background:var(--blue);border:0;border-radius:10px;cursor:pointer}
 .run:hover:not(:disabled){background:var(--blue-d)}
 .run:disabled{opacity:.65;cursor:not-allowed}
-.hint{min-height:24px;margin:10px 0 0;font-size:14px;color:var(--muted)}
-.hint.bad{color:var(--err)}
-.curl{margin-top:14px;border-radius:10px;background:var(--ink);overflow:hidden}
-.curl-h{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 0 14px;color:#9DB6D1;font-size:13px}
-.ghost{font:inherit;font-size:13px;color:#DCE9F6;background:transparent;border:1px solid #3A5675;border-radius:8px;padding:3px 10px;cursor:pointer}
-.ghost:hover{background:#1B3A5C}
-.curl pre{margin:0;padding:10px 14px 14px;color:#DCE9F6;font:13px/1.55 var(--mono);white-space:pre-wrap;word-break:break-all}
+.hint{min-height:22px;margin:8px 0 0;font-size:14px;color:var(--err)}
 
-.stage{position:relative;aspect-ratio:16/9;border-radius:14px;overflow:hidden;border:1px solid var(--line);
+.stage{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;border:1px solid var(--line);
   background:linear-gradient(#8DBBE8,#DDEBF7 72%)}
-.sun{position:absolute;left:50%;width:84px;height:84px;margin-left:-42px;border-radius:50%;background:var(--sun);
-  bottom:calc(26% - 42px);box-shadow:0 0 60px 18px rgba(245,165,36,.35)}
+.sun{position:absolute;left:50%;width:76px;height:76px;margin-left:-38px;border-radius:50%;background:var(--sun);
+  bottom:calc(26% - 38px);box-shadow:0 0 56px 16px rgba(245,165,36,.35)}
 .ground{position:absolute;left:0;right:0;bottom:0;height:26%;background:linear-gradient(#2F6FD6,#2358B0)}
-.msg{position:absolute;left:14px;right:14px;top:14px;margin:0;width:fit-content;max-width:calc(100% - 28px);
-  background:rgba(255,255,255,.92);border-radius:8px;padding:6px 12px;font-size:14px}
+.msg{position:absolute;left:12px;top:12px;margin:0;max-width:calc(100% - 24px);background:rgba(255,255,255,.92);
+  border-radius:8px;padding:5px 11px;font-size:14px}
 .stage[data-state=error] .msg{color:var(--err)}
 .stage video{position:absolute;inset:0;width:100%;height:100%;background:var(--ink)}
 .stage[data-state=done] .sun,.stage[data-state=done] .ground,.stage[data-state=done] .msg{display:none}
 .stage[data-state=loading] .sun{animation:rise 50s cubic-bezier(.2,.6,.3,1) forwards}
 @keyframes rise{to{bottom:58%}}
 @media(prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
+  .chev{transition:none}
   .stage[data-state=loading] .sun{animation:none;bottom:calc(26% + 6px)}
 }
-.status{display:flex;justify-content:space-between;align-items:center;min-height:36px;margin:10px 2px;font-size:14px}
+.status{display:flex;justify-content:space-between;align-items:center;min-height:34px;margin:8px 2px 4px;font-size:14px}
 .chip{font:13px var(--mono);color:var(--muted)}
 .chip.ok{color:var(--ok)} .chip.bad{color:var(--err)}
-details{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+details{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 14px}
 summary{cursor:pointer;font-weight:600;font-size:14px}
-#out{margin:10px 0 0;font:13px/1.55 var(--mono);white-space:pre-wrap;word-break:break-all;max-height:260px;overflow:auto}
-
-/* Docs */
-#docs{padding:72px 0 40px}
-.doc{max-width:760px}
-.doc h3{font:600 20px var(--display);margin:34px 0 10px}
-.method{font:600 14px var(--mono);background:var(--blue);color:#fff;border-radius:6px;padding:2px 8px;margin-right:8px}
-.doc code{font:14px var(--mono);background:#DCE8F3;border-radius:5px;padding:1px 6px}
-.tw{overflow-x:auto;background:var(--paper);border:1px solid var(--line);border-radius:10px}
-table{border-collapse:collapse;width:100%;font-size:15px}
-th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top}
-tr:last-child td{border-bottom:0}
-th{font-weight:600;color:var(--muted);font-size:14px}
-.code{background:var(--ink);color:#DCE9F6;border-radius:10px;padding:14px;font:13px/1.55 var(--mono);overflow-x:auto;margin:0}
-footer{padding:30px 0 50px;color:var(--muted);font-size:14px}
+.tech{margin-top:10px}
+.tech-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin:10px 0 4px}
+.ghost{font:inherit;font-size:13px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:2px 10px;cursor:pointer}
+.ghost:hover{background:var(--soft)}
+pre{margin:0;padding:12px;background:var(--ink);color:#DCE9F6;border-radius:8px;font:12.5px/1.55 var(--mono);
+  white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto}
+footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <a class="brand" href="#top">BmSkyApis</a>
-    <nav aria-label="Navigasi utama"><a href="#playground">Playground</a><a href="#docs">Dokumentasi</a></nav>
-  </header>
-
-  <main id="top">
+  <header><span class="brand">BmSkyApis</span></header>
+  <main>
     <h1>BmSkyApis</h1>
-    <p class="lead">REST API ringan untuk fitur AI. Tulis prompt, kirim, dan lihat hasilnya langsung di sini.</p>
-
-    <section id="playground" aria-labelledby="pg-h">
-      <h2 id="pg-h" class="sr">Playground</h2>
-      <div class="pg">
-        <div class="panel">
-          <div id="eplist" class="eplist"></div>
-          <div id="fields"></div>
-          <button id="run" class="run" type="button">Kirim permintaan</button>
-          <p id="hint" class="hint" role="status"></p>
-          <div class="curl">
-            <div class="curl-h"><span>cURL</span><button id="copy" class="ghost" type="button">Salin</button></div>
-            <pre id="curl"></pre>
-          </div>
-        </div>
-
-        <div>
-          <div id="stage" class="stage" data-state="idle">
-            <div class="sun"></div>
-            <div class="ground"></div>
-            <p id="msg" class="msg">Hasil video tampil di sini.</p>
-            <video id="video" controls playsinline hidden></video>
-          </div>
-          <div class="status">
-            <span id="chip" class="chip"></span>
-            <a id="dl" href="#" target="_blank" rel="noopener" hidden>Buka video</a>
-          </div>
-          <details>
-            <summary>Respons JSON</summary>
-            <pre id="out">Belum ada respons.</pre>
-          </details>
-        </div>
-      </div>
-    </section>
-
-    <section id="docs" aria-labelledby="docs-h">
-      <div class="doc">
-        <h2 id="docs-h">Dokumentasi</h2>
-        <p>Semua endpoint memakai metode GET dan mengembalikan JSON. Video dikirim sebagai tautan, bukan file.</p>
-
-        <h3><span class="method">GET</span><code>/api/ai/text2video</code></h3>
-        <p>Membuat video dari teks. Proses bisa memakan waktu puluhan detik.</p>
-        <div class="tw">
-          <table>
-            <thead><tr><th>Parameter</th><th>Aturan</th></tr></thead>
-            <tbody>
-              <tr><td><code>prompt</code></td><td>Wajib. 3 sampai 500 karakter.</td></tr>
-              <tr><td><code>ratio</code></td><td>Opsional. <code>auto</code> (bawaan), <code>16:9</code>, <code>9:16</code>, atau <code>1:1</code>.</td></tr>
-              <tr><td><code>sound</code></td><td>Opsional. <code>true</code> (bawaan) atau <code>false</code>.</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h3>Respons berhasil</h3>
-<pre class="code">{
-  "success": true,
-  "data": {
-    "prompt": "a cow in city",
-    "ratio": "auto",
-    "sound": true,
-    "videoUrl": "https://..."
-  }
-}</pre>
-
-        <h3>Respons gagal</h3>
-<pre class="code">{
-  "success": false,
-  "error": { "code": "RATE_LIMITED", "message": "...", "retryAfter": 42 }
-}</pre>
-        <p></p>
-        <div class="tw">
-          <table>
-            <thead><tr><th>HTTP</th><th>Arti</th></tr></thead>
-            <tbody>
-              <tr><td>400</td><td>Parameter tidak valid.</td></tr>
-              <tr><td>405</td><td>Metode bukan GET.</td></tr>
-              <tr><td>429</td><td>Kena batas permintaan. Lihat header <code>Retry-After</code> (detik).</td></tr>
-              <tr><td>502</td><td>Layanan pembuat video gagal atau tidak bisa dihubungi.</td></tr>
-              <tr><td>504</td><td>Pembuatan video terlalu lama.</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <h3>Batas penggunaan</h3>
-        <p>Setiap IP dibatasi 3 permintaan per menit dan 20 per jam. Kalau terus dikirim setelah ditolak, akses diblokir 10 menit.</p>
-      </div>
-    </section>
+    <p class="lead">REST API ringan untuk fitur AI.</p>
+    <div id="cats"></div>
   </main>
-
   <footer>&copy; 2026 BmSkyApis</footer>
 </div>
 
 <script>
 (() => {
-  const $ = (s) => document.querySelector(s);
-
   // Tambah endpoint baru cukup dengan menambah objek di sini.
   const ENDPOINTS = [{
     id: 'text2video',
@@ -221,69 +122,69 @@ footer{padding:30px 0 50px;color:var(--muted);font-size:14px}
         options: [['true', 'Aktif'], ['false', 'Mati']] }
     ]
   }];
+  const LABELS = { ai: 'AI' };
 
-  let ep = ENDPOINTS[0];
-  const values = {};
-  let busy = false, tick = null, cooldown = null;
-
-  const runBtn = $('#run'), hintEl = $('#hint'), stage = $('#stage'), msgEl = $('#msg');
-  const video = $('#video'), chip = $('#chip'), dl = $('#dl'), out = $('#out');
-
-  const val = (name) => String(values[name] ?? '').replace(/\s+/g, ' ').trim();
+  const el = (tag, cls, text) => {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  };
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const sh = (s) => "'" + s.replace(/'/g, "'\\''") + "'";
-  const hint = (t, bad) => { hintEl.textContent = t || ''; hintEl.className = 'hint' + (bad ? ' bad' : ''); };
-  const setState = (s) => { stage.dataset.state = s; };
 
-  function renderList() {
-    const box = $('#eplist');
-    box.textContent = '';
-    ENDPOINTS.forEach((e) => {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'ep';
-      b.setAttribute('aria-pressed', String(e === ep));
-      const t = document.createElement('span'); t.className = 'ep-t'; t.textContent = e.title;
-      const c = document.createElement('span'); c.className = 'ep-c'; c.textContent = e.category;
-      const p = document.createElement('span'); p.className = 'ep-p'; p.textContent = e.method + ' ' + e.path;
-      b.append(t, c, p);
-      b.addEventListener('click', () => { ep = e; renderAll(); });
-      box.append(b);
-    });
-  }
+  /* ---------- Playground (satu per fitur) ---------- */
+  function createPlayground(ep) {
+    const values = {};
+    let busy = false, tick = null, cooldown = null;
 
-  function renderFields() {
-    const box = $('#fields');
-    box.textContent = '';
+    const root = el('div', 'pg');
+    root.innerHTML =
+      '<div class="pg-form"><div class="fields"></div>' +
+      '<button class="run" type="button">Kirim permintaan</button>' +
+      '<p class="hint" role="status"></p></div>' +
+      '<div class="pg-out">' +
+        '<div class="stage" data-state="idle"><div class="sun"></div><div class="ground"></div>' +
+        '<p class="msg">Hasil tampil di sini.</p><video controls playsinline hidden></video></div>' +
+        '<div class="status"><span class="chip"></span><a class="dl" target="_blank" rel="noopener" hidden>Buka video</a></div>' +
+        '<details><summary>Detail teknis</summary><div class="tech">' +
+          '<div class="tech-h"><span>cURL</span><button class="ghost copy" type="button">Salin</button></div><pre class="curl"></pre>' +
+          '<div class="tech-h"><span>Respons</span></div><pre class="out">Belum ada respons.</pre>' +
+        '</div></details>' +
+      '</div>';
+
+    const q = (s) => root.querySelector(s);
+    const runBtn = q('.run'), hintEl = q('.hint'), stage = q('.stage'), msgEl = q('.msg');
+    const video = q('video'), chip = q('.chip'), dl = q('.dl'), out = q('.out');
+
+    const val = (name) => String(values[name] ?? '').replace(/\s+/g, ' ').trim();
+    const hint = (t) => { hintEl.textContent = t || ''; };
+    const setState = (s) => { stage.dataset.state = s; };
+
     ep.params.forEach((p) => {
-      const wrap = document.createElement('div');
-      wrap.className = 'f';
-      const id = 'f-' + p.name;
-      const lab = document.createElement('label');
+      const wrap = el('div', 'f');
+      const id = ep.id + '-' + p.name;
+      const lab = el('label', null, p.label + (p.required ? '' : ' (opsional)'));
       lab.htmlFor = id;
-      lab.textContent = p.label + (p.required ? '' : ' (opsional)');
       let inp;
       if (p.type === 'select') {
-        inp = document.createElement('select');
-        p.options.forEach(([v, l]) => {
-          const o = document.createElement('option'); o.value = v; o.textContent = l; inp.append(o);
-        });
+        inp = el('select');
+        p.options.forEach(([v, l]) => { const o = el('option', null, l); o.value = v; inp.append(o); });
       } else {
-        inp = document.createElement('textarea');
+        inp = el('textarea');
         inp.rows = 3;
         if (p.max) inp.maxLength = p.max;
         inp.placeholder = p.placeholder || '';
       }
       inp.id = id;
       inp.name = p.name;
-      inp.value = values[p.name] ?? p.value ?? '';
+      inp.value = p.value ?? '';
       values[p.name] = inp.value;
       wrap.append(lab, inp);
 
       let counter = null;
       if (p.max) {
-        counter = document.createElement('span');
-        counter.className = 'count';
-        counter.textContent = inp.value.length + '/' + p.max;
+        counter = el('span', 'count', inp.value.length + '/' + p.max);
         wrap.append(counter);
       }
       inp.addEventListener('input', () => {
@@ -296,100 +197,152 @@ footer{padding:30px 0 50px;color:var(--muted);font-size:14px}
           if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); run(); }
         });
       }
-      box.append(wrap);
+      q('.fields').append(wrap);
     });
-  }
 
-  function query() {
-    const qs = new URLSearchParams();
-    ep.params.forEach((p) => { const v = val(p.name); if (v) qs.set(p.name, v); });
-    return qs.toString();
-  }
+    function query() {
+      const qs = new URLSearchParams();
+      ep.params.forEach((p) => { const v = val(p.name); if (v) qs.set(p.name, v); });
+      return qs.toString();
+    }
 
-  function updateCurl() {
-    const lines = ep.params.filter((p) => val(p.name)).map((p) => '  --data-urlencode ' + sh(p.name + '=' + val(p.name)));
-    $('#curl').textContent = 'curl -G ' + sh(location.origin + ep.path) + (lines.length ? ' \\\n' + lines.join(' \\\n') : '');
-  }
+    function updateCurl() {
+      const lines = ep.params.filter((p) => val(p.name)).map((p) => '  --data-urlencode ' + sh(p.name + '=' + val(p.name)));
+      q('.curl').textContent = 'curl -G ' + sh(location.origin + ep.path) + (lines.length ? ' \\\n' + lines.join(' \\\n') : '');
+    }
 
-  function renderAll() { renderList(); renderFields(); updateCurl(); }
+    function setButton(label, disabled) { runBtn.textContent = label; runBtn.disabled = disabled; }
 
-  function setButton(label, disabled) { runBtn.textContent = label; runBtn.disabled = disabled; }
-
-  function startCooldown(sec) {
-    clearInterval(cooldown);
-    let left = Math.max(1, Math.ceil(sec));
-    setButton('Tunggu ' + left + ' dtk', true);
-    cooldown = setInterval(() => {
-      left -= 1;
-      if (left <= 0) { clearInterval(cooldown); setButton('Kirim permintaan', false); return; }
+    function startCooldown(sec) {
+      clearInterval(cooldown);
+      let left = Math.max(1, Math.ceil(sec));
       setButton('Tunggu ' + left + ' dtk', true);
-    }, 1000);
+      cooldown = setInterval(() => {
+        left -= 1;
+        if (left <= 0) { clearInterval(cooldown); setButton('Kirim permintaan', false); return; }
+        setButton('Tunggu ' + left + ' dtk', true);
+      }, 1000);
+    }
+
+    async function run() {
+      if (busy || runBtn.disabled) return;
+      const bad = ep.params.find((p) => p.required && val(p.name).length < (p.min || 1));
+      if (bad) { hint(bad.label + ' wajib diisi' + (bad.min ? ', minimal ' + bad.min + ' karakter.' : '.')); return; }
+
+      busy = true;
+      hint('');
+      setButton('Memproses…', true);
+      video.pause(); video.hidden = true; video.removeAttribute('src'); dl.hidden = true;
+      setState('loading');
+      const t0 = performance.now();
+      msgEl.textContent = 'Membuat video… 0 dtk';
+      clearInterval(tick);
+      tick = setInterval(() => {
+        msgEl.textContent = 'Membuat video… ' + Math.floor((performance.now() - t0) / 1000) + ' dtk';
+      }, 500);
+
+      let status = 0, json = null, retry = 0;
+      try {
+        const r = await fetch(ep.path + '?' + query(), { headers: { accept: 'application/json' } });
+        status = r.status;
+        retry = Number(r.headers.get('retry-after')) || 0;
+        const txt = await r.text();
+        try { json = JSON.parse(txt); }
+        catch (e) { json = { success: false, error: { message: 'Server mengembalikan respons tidak valid (HTTP ' + status + ').' } }; }
+      } catch (e) {
+        json = { success: false, error: { message: 'Tidak bisa terhubung ke server. Periksa koneksi lalu coba lagi.' } };
+      }
+      clearInterval(tick);
+
+      const took = ((performance.now() - t0) / 1000).toFixed(1);
+      out.textContent = JSON.stringify(json, null, 2);
+      const videoUrl = json && json.success && json.data && json.data.videoUrl;
+
+      if (typeof videoUrl === 'string' && videoUrl.startsWith('https://')) {
+        video.src = videoUrl;
+        video.hidden = false;
+        dl.href = videoUrl;
+        dl.hidden = false;
+        setState('done');
+        chip.className = 'chip ok';
+        chip.textContent = status + ' · ' + took + ' dtk';
+        startCooldown(5);
+      } else {
+        const m = (json && json.error && json.error.message) || 'Permintaan gagal.';
+        msgEl.textContent = m;
+        setState('error');
+        chip.className = 'chip bad';
+        chip.textContent = (status || 'ERR') + ' · ' + took + ' dtk';
+        hint(m);
+        startCooldown(status === 429 ? (retry || 60) : 3);
+      }
+      busy = false;
+    }
+
+    runBtn.addEventListener('click', run);
+    q('.copy').addEventListener('click', async (ev) => {
+      const b = ev.currentTarget;
+      try { await navigator.clipboard.writeText(q('.curl').textContent); b.textContent = 'Tersalin'; }
+      catch (e) { b.textContent = 'Gagal menyalin'; }
+      setTimeout(() => { b.textContent = 'Salin'; }, 1500);
+    });
+
+    updateCurl();
+    return root;
   }
 
-  async function run() {
-    if (busy || runBtn.disabled) return;
-    const bad = ep.params.find((p) => p.required && val(p.name).length < (p.min || 1));
-    if (bad) { hint(bad.label + ' wajib diisi' + (bad.min ? ', minimal ' + bad.min + ' karakter.' : '.'), true); return; }
-
-    busy = true;
-    hint('');
-    setButton('Memproses…', true);
-    video.pause(); video.hidden = true; video.removeAttribute('src'); dl.hidden = true;
-    setState('loading');
-    const t0 = performance.now();
-    const secs = () => Math.floor((performance.now() - t0) / 1000);
-    msgEl.textContent = 'Membuat video… 0 dtk';
-    clearInterval(tick);
-    tick = setInterval(() => { msgEl.textContent = 'Membuat video… ' + secs() + ' dtk'; }, 500);
-
-    let status = 0, json = null, retry = 0;
-    try {
-      const r = await fetch(ep.path + '?' + query(), { headers: { accept: 'application/json' } });
-      status = r.status;
-      retry = Number(r.headers.get('retry-after')) || 0;
-      const txt = await r.text();
-      try { json = JSON.parse(txt); }
-      catch (e) { json = { success: false, error: { message: 'Server mengembalikan respons tidak valid (HTTP ' + status + ').' } }; }
-    } catch (e) {
-      json = { success: false, error: { message: 'Tidak bisa terhubung ke server. Periksa koneksi lalu coba lagi.' } };
-    }
-    clearInterval(tick);
-
-    const took = ((performance.now() - t0) / 1000).toFixed(1);
-    out.textContent = JSON.stringify(json, null, 2);
-    const videoUrl = json && json.success && json.data && json.data.videoUrl;
-
-    if (typeof videoUrl === 'string' && videoUrl.startsWith('https://')) {
-      video.src = videoUrl;
-      video.hidden = false;
-      dl.href = videoUrl;
-      dl.hidden = false;
-      setState('done');
-      chip.className = 'chip ok';
-      chip.textContent = status + ' · ' + took + ' dtk';
-      startCooldown(5);
-    } else {
-      const m = (json && json.error && json.error.message) || 'Permintaan gagal.';
-      msgEl.textContent = m;
-      setState('error');
-      chip.className = 'chip bad';
-      chip.textContent = (status || 'ERR') + ' · ' + took + ' dtk';
-      hint(m, true);
-      if (status === 429) startCooldown(retry || 60); else startCooldown(3);
-    }
-    busy = false;
-  }
-
-  runBtn.addEventListener('click', run);
-
-  $('#copy').addEventListener('click', async (ev) => {
-    const b = ev.currentTarget;
-    try { await navigator.clipboard.writeText($('#curl').textContent); b.textContent = 'Tersalin'; }
-    catch (e) { b.textContent = 'Gagal menyalin'; }
-    setTimeout(() => { b.textContent = 'Salin'; }, 1500);
+  /* ---------- Kategori -> fitur -> playground ---------- */
+  const isOpen = (i) => i.head.getAttribute('aria-expanded') === 'true';
+  const setOpen = (i, o) => { i.head.setAttribute('aria-expanded', String(o)); i.body.hidden = !o; };
+  const bindExclusive = (items) => items.forEach((item) => {
+    item.head.addEventListener('click', () => {
+      const next = !isOpen(item);
+      items.forEach((x) => setOpen(x, false));
+      setOpen(item, next);
+    });
   });
 
-  renderAll();
+  const groups = {};
+  ENDPOINTS.forEach((e) => { (groups[e.category] = groups[e.category] || []).push(e); });
+
+  const catItems = [];
+  const root = document.getElementById('cats');
+
+  Object.entries(groups).forEach(([cat, eps]) => {
+    const box = el('div', 'cat');
+    const head = el('button', 'cat-h');
+    head.type = 'button';
+    head.setAttribute('aria-expanded', 'false');
+    head.append(el('span', null, LABELS[cat] || cap(cat)), el('span', 'cat-n', eps.length + ' fitur'), el('span', 'chev'));
+    const body = el('div', 'cat-b');
+    body.hidden = true;
+
+    const featItems = [];
+    eps.forEach((e) => {
+      const f = el('div', 'feat');
+      const fh = el('button', 'feat-h');
+      fh.type = 'button';
+      fh.setAttribute('aria-expanded', 'false');
+      fh.append(el('span', 'feat-t', e.title), el('span', 'feat-p', e.method + ' ' + e.path), el('span', 'chev'));
+      const fb = el('div', 'feat-b');
+      fb.hidden = true;
+      let built = false;
+      fh.addEventListener('click', () => {
+        if (!built && !fb.hidden === false) { /* dibangun saat pertama dibuka */ }
+        if (!built) { fb.append(createPlayground(e)); built = true; }
+      });
+      f.append(fh, fb);
+      body.append(f);
+      featItems.push({ head: fh, body: fb });
+    });
+
+    bindExclusive(featItems);
+    box.append(head, body);
+    root.append(box);
+    catItems.push({ head, body });
+  });
+
+  bindExclusive(catItems);
 })();
 </script>
 </body>
