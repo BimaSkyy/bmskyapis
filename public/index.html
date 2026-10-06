@@ -1,505 +1,229 @@
-<!doctype html>
-<html lang="id">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BmSkyApis</title>
-<meta name="description" content="REST API ringan untuk fitur AI.">
-<meta name="theme-color" content="#E9F1F7">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='20' r='9' fill='%23F5A524'/%3E%3Crect y='20' width='32' height='12' fill='%232F6FD6'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&display=swap" rel="stylesheet">
-<style>
-:root{
-  --mist:#E9F1F7; --ink:#0F2740; --blue:#2F6FD6; --blue-d:#2358B0; --sun:#F5A524;
-  --paper:#fff; --soft:#F5F9FD; --muted:#4F657C; --line:#C3D5E6; --err:#B3261E; --ok:#1B7F4B;
-  --display:"Bricolage Grotesque",system-ui,sans-serif;
-  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
-}
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--mist);color:var(--ink);font:16px/1.6 var(--body)}
-.wrap{max-width:860px;margin:0 auto;padding:0 20px}
-button:focus-visible,a:focus-visible,textarea:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+const EP_LIST = [
+  { id: 'gemini', category: 'ai', title: 'Gemini AI', method: 'GET', path: '/api/gemini', result: { type: 'text', field: 'text' }, params: [
+    { name: 'q', type: 'textarea', label: 'Pertanyaan', required: true, placeholder: 'Tulis pertanyaan…', value: '' }
+  ] },
+  { id: 'pinterest', category: 'search', title: 'Pinterest Search', method: 'GET', path: '/api/search/pinterest', result: { type: 'text', field: 'count' }, params: [
+    { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, placeholder: 'Contoh: anime, kucing', value: '' }
+  ] },
+  { id: 'tiktok', category: 'download', title: 'TikTok Search', method: 'GET', path: '/api/download/tiktok', result: { type: 'text', field: 'count' }, params: [
+    { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, placeholder: 'Contoh: kucing lucu', value: '' }
+  ] }
+];
+const LABELS = { ai: 'AI', search: 'Pencarian', download: 'Unduhan' };
 
-header{padding:28px 0 0}
-.brand{font:800 18px var(--display);letter-spacing:-.02em}
-h1{font:800 clamp(44px,9vw,80px)/.95 var(--display);letter-spacing:-.04em;margin:44px 0 12px}
-.lead{color:var(--muted);font-size:18px;margin:0 0 36px}
+const el = (tag, cls, text) => {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+};
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const sh = (s) => "'" + s.replace(/'/g, "'\\''") + "'";
 
-/* Kategori */
-.cat{background:var(--paper);border:1px solid var(--line);border-radius:14px;margin-bottom:10px}
-.cat-h{display:flex;align-items:center;width:100%;padding:18px 20px;font:600 20px var(--display);color:var(--ink);
-  background:none;border:0;border-radius:14px;cursor:pointer;text-align:left}
-.cat-h:hover{background:#F4F8FC}
-.cat-n{margin-left:auto;font:14px var(--body);color:var(--muted)}
-.chev{width:9px;height:9px;margin:0 4px 3px 14px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);
-  transform:rotate(45deg);transition:transform .15s}
-[aria-expanded=true]>.chev{transform:rotate(-135deg);margin-bottom:-3px}
-.cat-b{padding:0 14px 14px}
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
 
-/* Fitur */
-.feat{border:1px solid var(--line);border-radius:10px;background:var(--soft);margin-top:8px}
-.feat-h{display:flex;align-items:center;gap:12px;width:100%;padding:13px 14px;font:inherit;color:var(--ink);
-  background:none;border:0;border-radius:10px;cursor:pointer;text-align:left}
-.feat-h:hover{background:#EDF4FB}
-.feat-t{font-weight:600}
-.feat-p{font:13px var(--mono);color:var(--muted)}
-.feat-h .chev{margin-left:auto}
-.feat-b{padding:2px 14px 16px}
-
-/* Playground */
-.pg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:18px;align-items:start}
-@media(max-width:720px){.pg{grid-template-columns:1fr}}
-.f{margin-bottom:14px;position:relative}
-.f label{display:block;font-size:14px;font-weight:600;margin-bottom:6px}
-.f textarea,.f select,.f input{width:100%;font:inherit;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-.f textarea{resize:vertical;min-height:90px}
-.count{position:absolute;right:10px;bottom:8px;font-size:12px;color:var(--muted);background:#fff}
-.run{width:100%;height:46px;font:600 16px var(--body);color:#fff;background:var(--blue);border:0;border-radius:10px;cursor:pointer}
-.run:hover:not(:disabled){background:var(--blue-d)}
-.run:disabled{opacity:.65;cursor:not-allowed}
-.hint{min-height:22px;margin:8px 0 0;font-size:14px;color:var(--err)}
-
-.stage{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;border:1px solid var(--line);
-  background:linear-gradient(#8DBBE8,#DDEBF7 72%)}
-.sun{position:absolute;left:50%;width:76px;height:76px;margin-left:-38px;border-radius:50%;background:var(--sun);
-  bottom:calc(26% - 38px);box-shadow:0 0 56px 16px rgba(245,165,36,.35)}
-.ground{position:absolute;left:0;right:0;bottom:0;height:26%;background:linear-gradient(#2F6FD6,#2358B0)}
-.msg{position:absolute;left:12px;top:12px;margin:0;max-width:calc(100% - 24px);background:rgba(255,255,255,.92);
-  border-radius:8px;padding:5px 11px;font-size:14px}
-.stage[data-state=error] .msg{color:var(--err)}
-.stage video{position:absolute;inset:0;width:100%;height:100%;background:var(--ink)}
-.stage[data-state=done] .sun,.stage[data-state=done] .ground,.stage[data-state=done] .msg{display:none}
-.reply{min-height:140px;max-height:320px;overflow:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px;white-space:pre-wrap;word-break:break-word;font-size:15px;color:var(--muted)}
-.reply.has{color:var(--ink)}
-.reply.bad{color:var(--err)}
-.stage audio{position:absolute;left:12px;right:12px;bottom:12px;width:calc(100% - 24px);z-index:1}
-.stage[data-state=played] .sun{bottom:58%}
-.stage[data-state=played] .msg{display:none}
-.stage[data-state=loading] .sun{animation:rise 50s cubic-bezier(.2,.6,.3,1) forwards}
-@keyframes rise{to{bottom:58%}}
-@media(prefers-reduced-motion:reduce){
-  .chev{transition:none}
-  .stage[data-state=loading] .sun{animation:none;bottom:calc(26% + 6px)}
-}
-.status{display:flex;justify-content:space-between;align-items:center;min-height:34px;margin:8px 2px 4px;font-size:14px}
-.chip{font:13px var(--mono);color:var(--muted)}
-.chip.ok{color:var(--ok)} .chip.bad{color:var(--err)}
-details{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 14px}
-summary{cursor:pointer;font-weight:600;font-size:14px}
-.tech{margin-top:10px}
-.tech-h{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin:10px 0 4px}
-.ghost{font:inherit;font-size:13px;color:var(--ink);background:transparent;border:1px solid var(--line);border-radius:8px;padding:2px 10px;cursor:pointer}
-.ghost:hover{background:var(--soft)}
-pre{margin:0;padding:12px;background:var(--ink);color:#DCE9F6;border-radius:8px;font:12.5px/1.55 var(--mono);
-  white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto}
-footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <header><span class="brand">BmSkyApis</span></header>
-  <main>
-    <h1>BmSkyApis</h1>
-    <p class="lead">REST API ringan untuk fitur AI.</p>
-    <div id="cats"></div>
-  </main>
-  <footer>&copy; 2026 BmSkyApis</footer>
-</div>
-
-<script>
-(() => {
-  // Tambah endpoint baru cukup dengan menambah objek di sini.
-  const ENDPOINTS = [{
-    id: 'text2video',
-    category: 'ai',
-    title: 'Text to Video',
-    method: 'GET',
-    path: '/api/ai/text2video',
-    result: { type: 'video', field: 'videoUrl', label: 'video' },
-    params: [
-      { name: 'prompt', type: 'textarea', label: 'Prompt', required: true, max: 500, min: 3,
-        placeholder: 'a cow walking in a city at sunset', value: 'a cow in city' },
-      { name: 'ratio', type: 'select', label: 'Rasio', value: 'auto',
-        options: [['auto', 'Otomatis'], ['16:9', '16:9'], ['9:16', '9:16'], ['1:1', '1:1']] },
-      { name: 'sound', type: 'select', label: 'Suara', value: 'true',
-        options: [['true', 'Aktif'], ['false', 'Mati']] }
-    ]
-  }, {
-    id: 'ttsfree',
-    category: 'ai',
-    title: 'Text to Speech',
-    method: 'GET',
-    path: '/api/ai/ttsfree',
-    result: { type: 'audio', field: 'previewUrl', label: 'suara' },
-    params: [
-      { name: 'text', type: 'textarea', label: 'Teks', required: true, max: 500, min: 1,
-        placeholder: 'Halo, ini suara dari BmSkyApis', value: 'Halo, apa kabar?' },
-      { name: 'lang', type: 'input', label: 'Bahasa', limit: 20, value: 'Id' },
-      { name: 'mood', type: 'input', label: 'Suasana', limit: 20, value: 'EXCITED' }
-    ]
-  }, {
-    id: 'deepai',
-    category: 'ai',
-    title: 'DeepAI',
-    method: 'GET',
-    path: '/api/ai/deepai',
-    result: { type: 'text', field: 'response', label: 'jawaban' },
-    params: [
-      { name: 'text', type: 'textarea', label: 'Pertanyaan', required: true, max: 1000, min: 1,
-        placeholder: 'Tanyakan apa saja', value: 'Halo, apa kabar?' }
-    ]
-  }, {
-    id: 'flux',
-    category: 'ai',
-    title: 'Flux Generate Image',
-    method: 'GET',
-    path: '/api/ai/flux',
-    result: { type: 'image', field: 'imageUrl', label: 'gambar' },
-    params: [
-      { name: 'prompt', type: 'textarea', label: 'Deskripsi Gambar', required: true, max: 500, min: 1,
-        placeholder: 'Contoh: langit malam penuh bintang gaya anime', value: 'anime wanita dewasa bajak laut' }
-    ]
-  }, {
-    id: 'pinterest',
-    category: 'search',
-    title: 'Pinterest Search',
-    method: 'GET',
-    path: '/api/search/pinterest',
-    result: { type: 'text', field: 'count', label: 'hasil' },
-    params: [
-      { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, max: 100, min: 1,
-        placeholder: 'Contoh: anime, kucing, pemandangan', value: 'girls' }
-    ]
-  }, {
-    id: 'tiktok',
-    category: 'download',
-    title: 'TikTok Search',
-    method: 'GET',
-    path: '/api/download/tiktok',
-    result: { type: 'text', field: 'count', label: 'hasil' },
-    params: [
-      { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, max: 100, min: 1,
-        placeholder: 'Contoh: kucing lucu, musik viral', value: 'kucing lucu' }
-    ]
-  }];
-  const LABELS = { ai: 'AI', search: 'Pencarian', download: 'Unduhan' };
-
-  const el = (tag, cls, text) => {
-    const n = document.createElement(tag);
-    if (cls) n.className = cls;
-    if (text != null) n.textContent = text;
-    return n;
-  };
-  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-  const sh = (s) => "'" + s.replace(/'/g, "'\\''") + "'";
-
-  /* ---------- Playground (satu per fitur) ---------- */
-  function createPlayground(ep) {
-    const values = {};
-    let busy = false, tick = null, cooldown = null;
-
-    const root = el('div', 'pg');
-    root.innerHTML =
-      '<div class="pg-form"><div class="fields"></div>' +
-      '<button class="run" type="button">Kirim permintaan</button>' +
-      '<p class="hint" role="status"></p></div>' +
-      '<div class="pg-out"><div class="reply" hidden>Jawaban tampil di sini.</div>' +
-        '<div class="stage" data-state="idle"><div class="sun"></div><div class="ground"></div>' +
-        '<p class="msg">Hasil tampil di sini.</p><video controls playsinline hidden></video><audio controls hidden></audio></div>' +
-        '<div class="status"><span class="chip"></span><a class="dl" target="_blank" rel="noopener" hidden>Buka hasil</a></div>' +
-        '<details><summary>Detail teknis</summary><div class="tech">' +
-          '<div class="tech-h"><span>cURL</span><button class="ghost copy" type="button">Salin</button></div><pre class="curl"></pre>' +
-          '<div class="tech-h"><span>Respons</span></div><pre class="out">Belum ada respons.</pre>' +
-        '</div></details>' +
-      '</div>';
-
-    const q = (s) => root.querySelector(s);
-    const runBtn = q('.run'), hintEl = q('.hint'), stage = q('.stage'), msgEl = q('.msg');
-    const chip = q('.chip'), dl = q('.dl'), out = q('.out');
-    const RES = ep.result;
-    const resultArea = q('.result-area') || Object.assign(document.createElement('div'), { className: 'result-area' });
-    if (!q('.result-area')) { out.before(resultArea); out.style.display = 'none'; }
-    resultArea.innerHTML = '';
-    resultArea.style.cssText = 'margin: 1em 0; padding: 1em; background: #1a1a1a; border-radius: 8px; word-break: break-all;';
-
-    // Tampilkan hasil otomatis: gambar/video/JSON
-    const showResult = (data) => {
-      // Gambar tunggal
-      if (typeof data === 'string' && (data.startsWith('http') || data.startsWith('data:image/')) && /\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i.test(data) || data.startsWith('data:image/')) {
-        const img = Object.assign(document.createElement('img'), { src: data });
-        img.style.cssText = 'max-width: 100%; border-radius: 6px;';
-        resultArea.append(img);
-        return true;
-      }
-      // Video
-      if (typeof data === 'string' && /\.(mp4|webm)(\?|$)/i.test(data)) {
-        const vid = Object.assign(document.createElement('video'), { src: data, controls: true });
-        vid.style.cssText = 'max-width: 100%; border-radius: 6px;';
-        resultArea.append(vid);
-        return true;
-      }
-      // Array gambar
-      if (Array.isArray(data) && data.every(x => typeof x === 'string' && (x.startsWith('http') || x.startsWith('data:image/')))) {
-        const wrap = Object.assign(document.createElement('div'), { style: 'display: flex; flex-wrap: wrap; gap: 8px;' });
-        data.forEach(url => {
-          const img = Object.assign(document.createElement('img'), { src: url });
-          img.style.cssText = 'max-width: 150px; border-radius: 4px;';
-          wrap.append(img);
-        });
-        resultArea.append(wrap);
-        return true;
-      }
-      // JSON/teks
-      const pre = Object.assign(document.createElement('pre'), { style: 'white-space: pre-wrap; font-size: 13px; line-height: 1.5; margin: 0;' });
-      pre.textContent = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-      resultArea.append(pre);
-      return false;
-    };
-    const say = (t) => { resultArea.textContent = t; };
-
-    const val = (name) => String(values[name] ?? '').replace(/\s+/g, ' ').trim();
-    const hint = (t) => { hintEl.textContent = t || ''; };
-    const setState = (s) => { stage.dataset.state = s; };
-
-    ep.params.forEach((p) => {
-      const wrap = el('div', 'f');
-      const id = ep.id + '-' + p.name;
-      const lab = el('label', null, p.label + (p.required ? '' : ' (opsional)'));
-      lab.htmlFor = id;
-      let inp;
-      if (p.type === 'select') {
-        inp = el('select');
-        p.options.forEach(([v, l]) => { const o = el('option', null, l); o.value = v; inp.append(o); });
-      } else if (p.type === 'input') {
-        inp = el('input');
-        inp.type = 'text';
-        if (p.limit) inp.maxLength = p.limit;
-      } else {
-        inp = el('textarea');
-        inp.rows = 3;
-        if (p.max) inp.maxLength = p.max;
-        inp.placeholder = p.placeholder || '';
-      }
-      inp.id = id;
-      inp.name = p.name;
-      inp.value = p.value ?? '';
-      values[p.name] = inp.value;
-      wrap.append(lab, inp);
-
-      let counter = null;
-      if (p.max) {
-        counter = el('span', 'count', inp.value.length + '/' + p.max);
-        wrap.append(counter);
-      }
-      inp.addEventListener('input', () => {
-        values[p.name] = inp.value;
-        if (counter) counter.textContent = inp.value.length + '/' + p.max;
-        updateCurl();
-      });
-      if (p.type === 'textarea') {
-        inp.addEventListener('keydown', (ev) => {
-          if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); run(); }
-        });
-      }
-      q('.fields').append(wrap);
-    });
-
-    function query() {
-      const qs = new URLSearchParams();
-      ep.params.forEach((p) => { const v = val(p.name); if (v) qs.set(p.name, v); });
-      return qs.toString();
-    }
-
-    function updateCurl() {
-      const params = ep.params.filter((p) => val(p.name)).map((p) => p.name + '=' + encodeURIComponent(val(p.name))).join('&');
-      q('.curl').textContent = location.origin + ep.path + (params ? '?' + params : '');
-    }
-
-    function setButton(label, disabled) { runBtn.textContent = label; runBtn.disabled = disabled; }
-
-    function startCooldown(sec) {
-      clearInterval(cooldown);
-      let left = Math.max(1, Math.ceil(sec));
-      setButton('Tunggu ' + left + ' dtk', true);
-      cooldown = setInterval(() => {
-        left -= 1;
-        if (left <= 0) { clearInterval(cooldown); setButton('Kirim permintaan', false); return; }
-        setButton('Tunggu ' + left + ' dtk', true);
-      }, 1000);
-    }
-
-    async function run() {
-      if (busy || runBtn.disabled) return;
-      const bad = ep.params.find((p) => p.required && val(p.name).length < (p.min || 1));
-      if (bad) { hint(bad.label + ' wajib diisi' + (bad.min ? ', minimal ' + bad.min + ' karakter.' : '.')); return; }
-
-      busy = true;
-      hint('');
-      setButton('Memproses…', true);
-      video.pause(); video.hidden = true; video.removeAttribute('src');
-      audio.pause(); audio.hidden = true; audio.removeAttribute('src'); dl.hidden = true;
-      setState('loading');
-      const t0 = performance.now();
-      reply.classList.remove('bad', 'has');
-      say('Membuat ' + RES.label + '… 0 dtk');
-      clearInterval(tick);
-      tick = setInterval(() => {
-        say('Membuat ' + RES.label + '… ' + Math.floor((performance.now() - t0) / 1000) + ' dtk');
-      }, 500);
-
-      let status = 0, json = null, retry = 0;
-      try {
-        const r = await fetch(ep.path + '?' + query(), { headers: { accept: 'application/json' } });
-        status = r.status;
-        retry = Number(r.headers.get('retry-after')) || 0;
-        const txt = await r.text();
-        try { json = JSON.parse(txt); }
-        catch (e) { json = { success: false, error: { message: 'Server mengembalikan respons tidak valid (HTTP ' + status + ').' } }; }
-      } catch (e) {
-        json = { success: false, error: { message: 'Tidak bisa terhubung ke server. Periksa koneksi lalu coba lagi.' } };
-      }
-      clearInterval(tick);
-
-      const took = ((performance.now() - t0) / 1000).toFixed(1);
-      resultArea.innerHTML = '';
-      dl.hidden = true;
-
-      if (json && json.success) {
-        // Tampilkan hasil otomatis di satu panel
-        const data = json.data;
-        let displayed = false;
-
-        // Gambar tunggal
-        if (typeof data === 'string' && (data.startsWith('http') || data.startsWith('data:image/'))) {
-          const img = Object.assign(document.createElement('img'), { src: data });
-          img.style.cssText = 'max-width: 100%; border-radius: 6px;';
-          resultArea.append(img);
-          dl.href = data; dl.hidden = false; displayed = true;
-        }
-        // Cek kolom yang berisi URL gambar/video
-        else if (typeof data === 'object' && data !== null) {
-          // Cari URL di semua kolom data
-          for (const [k, v] of Object.entries(data)) {
-            if (typeof v === 'string' && v.startsWith('http')) {
-              if (/\.(mp4|webm)(\?|$)/i.test(v)) {
-                const vid = Object.assign(document.createElement('video'), { src: v, controls: true });
-                vid.style.cssText = 'max-width: 100%; border-radius: 6px;';
-                resultArea.append(vid);
-                dl.href = v; dl.hidden = false; displayed = true; break;
-              } else if (/\.(jpg|jpeg|png|gif|webp|avif)(\?|$)/i.test(v) || v.startsWith('data:image/')) {
-                const img = Object.assign(document.createElement('img'), { src: v });
-                img.style.cssText = 'max-width: 100%; border-radius: 6px;';
-                resultArea.append(img);
-                dl.href = v; dl.hidden = false; displayed = true; break;
-              }
-            }
-            // Array gambar
-            if (Array.isArray(v) && v.every(x => typeof x === 'string' && (x.startsWith('http') || x.startsWith('data:image/')))) {
-              const wrap = Object.assign(document.createElement('div'), { style: 'display: flex; flex-wrap: wrap; gap: 8px;' });
-              v.slice(0, 5).forEach(url => {
-                const img = Object.assign(document.createElement('img'), { src: url });
-                img.style.cssText = 'max-width: 150px; border-radius: 4px;';
-                wrap.append(img);
-              });
-              resultArea.append(wrap); displayed = true;
-            }
-          }
-        }
-
-        // Kalau belum tampilkan, tampilkan JSON lengkap
-        if (!displayed) {
-          const pre = Object.assign(document.createElement('pre'), { style: 'white-space: pre-wrap; font-size: 13px; line-height: 1.5; margin: 0;' });
-          pre.textContent = JSON.stringify(json, null, 2);
-          resultArea.append(pre);
-        }
-
-        setState('done');
-        chip.className = 'chip ok';
-        chip.textContent = status + ' · ' + took + ' dtk';
-        startCooldown(5);
-      } else {
-        const m = (json && json.error && json.error.message) || 'Permintaan gagal.';
-        resultArea.innerHTML = '';
-        const pre = Object.assign(document.createElement('pre'), { style: 'color: #ff6b6b; white-space: pre-wrap; margin: 0;' });
-        pre.textContent = m;
-        resultArea.append(pre);
-        setState('error');
-        chip.className = 'chip bad';
-        chip.textContent = (status || 'ERR') + ' · ' + took + ' dtk';
-        hint(m);
-        startCooldown(status === 429 ? (retry || 60) : 3);
-      }
-      busy = false;
-    }
-
-    runBtn.addEventListener('click', run);
-    q('.copy').addEventListener('click', async (ev) => {
-      const b = ev.currentTarget;
-      try { await navigator.clipboard.writeText(q('.curl').textContent); b.textContent = 'Tersalin'; }
-      catch (e) { b.textContent = 'Gagal menyalin'; }
-      setTimeout(() => { b.textContent = 'Salin'; }, 1500);
-    });
-
-    updateCurl();
-    return root;
-  }
-
-  /* ---------- Kategori -> fitur -> playground ---------- */
-  const isOpen = (i) => i.head.getAttribute('aria-expanded') === 'true';
-  const setOpen = (i, o) => { i.head.setAttribute('aria-expanded', String(o)); i.body.hidden = !o; };
-  const bindExclusive = (items) => items.forEach((item) => {
-    item.head.addEventListener('click', () => {
-      const next = !isOpen(item);
-      items.forEach((x) => setOpen(x, false));
-      setOpen(item, next);
-    });
-  });
+  const nav = el('nav');
+  const h1 = el('h1', null, 'BmskyAPIs');
+  nav.append(h1);
+  app.append(nav);
 
   const groups = {};
-  ENDPOINTS.forEach((e) => { (groups[e.category] = groups[e.category] || []).push(e); });
-
-  const catItems = [];
-  const root = document.getElementById('cats');
-
-  Object.entries(groups).forEach(([cat, eps]) => {
-    const box = el('div', 'cat');
-    const head = el('button', 'cat-h');
-    head.type = 'button';
-    head.setAttribute('aria-expanded', 'false');
-    head.append(el('span', null, LABELS[cat] || cap(cat)), el('span', 'cat-n', eps.length + ' fitur'), el('span', 'chev'));
-    const body = el('div', 'cat-b');
-    body.hidden = true;
-
-    const featItems = [];
-    eps.forEach((e) => {
-      const f = el('div', 'feat');
-      const fh = el('button', 'feat-h');
-      fh.type = 'button';
-      fh.setAttribute('aria-expanded', 'false');
-      fh.append(el('span', 'feat-t', e.title), el('span', 'feat-p', e.method + ' ' + e.path), el('span', 'chev'));
-      const fb = el('div', 'feat-b');
-      fb.hidden = true;
-      let built = false;
-      fh.addEventListener('click', () => {
-        if (!built) { fb.append(createPlayground(e)); built = true; }
-      });
-      f.append(fh, fb);
-      body.append(f);
-      featItems.push({ head: fh, body: fb });
-    });
-
-    bindExclusive(featItems);
-    box.append(head, body);
-    root.append(box);
-    catItems.push({ head, body });
+  EP_LIST.forEach(ep => {
+    if (!groups[ep.category]) groups[ep.category] = [];
+    groups[ep.category].push(ep);
   });
 
-  bindExclusive(catItems);
-})();
-</script>
-</body>
-</html>
+  for (const [cat, eps] of Object.entries(groups)) {
+    const sec = el('section', 'cat');
+    sec.append(el('h2', 'cat-title', LABELS[cat] || cap(cat)));
+
+    eps.forEach(ep => {
+      const wrap = el('div', 'ep-wrap');
+      const btn = el('button', 'ep-btn', ep.title);
+      wrap.append(btn);
+      sec.append(wrap);
+
+      let pg = null;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.ep-wrap.open').forEach(w => { if (w !== wrap) w.classList.remove('open'); });
+        wrap.classList.toggle('open');
+        if (!pg) {
+          pg = createPlayground(ep);
+          wrap.append(pg);
+        }
+      });
+    });
+    app.append(sec);
+  }
+}
+
+function createPlayground(ep) {
+  const values = {};
+  let busy = false, cooldown = null;
+
+  const root = el('div', 'pg');
+  root.innerHTML =
+    '<div class="pg-form"><div class="fields"></div>' +
+    '<button class="run" type="button">Kirim permintaan</button>' +
+    '<p class="hint" role="status"></p></div>' +
+    '<div class="pg-out">' +
+      '<div class="status"><span class="chip"></span><a class="dl" target="_blank" rel="noopener" hidden>Buka hasil</a></div>' +
+      '<details open><summary>Detail teknis</summary><div class="tech">' +
+        '<div class="tech-h"><span>URL</span><button class="ghost copy" type="button">Salin</button></div><pre class="curl"></pre>' +
+        '<div class="tech-h"><span>Hasil</span></div><pre class="out">Belum ada hasil.</pre>' +
+      '</div></details>' +
+    '</div>';
+
+  const q = (sel) => root.querySelector(sel);
+  const runBtn = q('.run'), hintEl = q('.hint');
+  const chip = q('.chip'), dl = q('.dl'), out = q('.out'), curlEl = q('.curl');
+
+  const val = (name) => String(values[name] || '').replace(/\s+/g, ' ').trim();
+  const hint = (t) => { hintEl.textContent = t || ''; };
+  const setState = (s) => { root.dataset.state = s; };
+
+  ep.params.forEach(p => {
+    const wrap = el('div', 'f');
+    const id = ep.id + '-' + p.name;
+    const lab = el('label', null, p.label + (p.required ? '' : ' (opsional)'));
+    lab.htmlFor = id;
+    let inp;
+    if (p.type === 'select') {
+      inp = el('select');
+      (p.options || []).forEach(opt => {
+        const o = el('option', null, opt.label || opt);
+        o.value = opt.value || opt;
+        if (opt.value === p.value) o.selected = true;
+        inp.append(o);
+      });
+    } else if (p.type === 'textarea') {
+      inp = el('textarea');
+      inp.rows = 3;
+    } else {
+      inp = el('input');
+      inp.type = p.type || 'text';
+    }
+    inp.id = id;
+    inp.placeholder = p.placeholder || '';
+    inp.value = p.value || '';
+    values[p.name] = inp.value;
+
+    let counter = null;
+    if (p.max) {
+      counter = el('span', 'count', inp.value.length + '/' + p.max);
+    }
+    inp.addEventListener('input', () => {
+      values[p.name] = inp.value;
+      if (counter) counter.textContent = inp.value.length + '/' + p.max;
+      updateCurl();
+    });
+    if (p.type === 'textarea') {
+      inp.addEventListener('keydown', ev => {
+        if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); run(); }
+      });
+    }
+    wrap.append(lab, inp);
+    if (counter) wrap.append(counter);
+    q('.fields').append(wrap);
+  });
+
+  function queryString() {
+    const s = new URLSearchParams();
+    ep.params.forEach(p => { const v = val(p.name); if (v) s.set(p.name, v); });
+    return s.toString();
+  }
+
+  function updateCurl() {
+    const params = ep.params.filter(p => val(p.name)).map(p => p.name + '=' + encodeURIComponent(val(p.name))).join('&');
+    curlEl.textContent = location.origin + ep.path + (params ? '?' + params : '');
+  }
+
+  function setButton(label, disabled) { runBtn.textContent = label; runBtn.disabled = disabled; }
+  function startCooldown(sec) {
+    clearInterval(cooldown);
+    let left = Math.max(1, Math.ceil(sec));
+    setButton('Tunggu ' + left + ' dtk', true);
+    cooldown = setInterval(() => {
+      left--;
+      if (left <= 0) { clearInterval(cooldown); setButton('Kirim permintaan', false); return; }
+      setButton('Tunggu ' + left + ' dtk', true);
+    }, 1000);
+  }
+
+  async function run() {
+    if (busy) return;
+    busy = true;
+    setState('loading');
+    setButton('Memproses…', true);
+    chip.textContent = '';
+    chip.className = 'chip';
+    dl.hidden = true;
+    out.textContent = 'Memproses permintaan…';
+    hint('');
+
+    const t0 = performance.now();
+    let status = 0, json = null, retry = 0;
+    try {
+      const r = await fetch(ep.path + '?' + queryString(), { headers: { accept: 'application/json' } });
+      status = r.status;
+      retry = Number(r.headers.get('retry-after')) || 0;
+      const txt = await r.text();
+      try { json = JSON.parse(txt); }
+      catch (e) { json = { success: false, error: { message: 'Respons tidak valid: ' + txt.slice(0, 200) } }; }
+    } catch (e) {
+      json = { success: false, error: { message: 'Tidak terhubung ke server.' } };
+    }
+    const took = ((performance.now() - t0) / 1000).toFixed(1);
+
+    // Tampilkan JSON lengkap
+    out.textContent = JSON.stringify(json, null, 2);
+
+    if (json && json.success) {
+      setState('done');
+      chip.className = 'chip ok';
+      chip.textContent = status + ' · ' + took + ' dtk';
+      // Coba cari link unduhan
+      const data = json.data;
+      if (data) {
+        const findUrl = (obj) => {
+          if (!obj) return null;
+          if (typeof obj === 'string' && obj.startsWith('http')) return obj;
+          if (Array.isArray(obj)) return findUrl(obj[0]);
+          if (typeof obj === 'object') {
+            for (const v of Object.values(obj)) {
+              const u = findUrl(v);
+              if (u) return u;
+            }
+          }
+          return null;
+        };
+        const url = findUrl(data);
+        if (url) { dl.href = url; dl.hidden = false; }
+      }
+      startCooldown(5);
+    } else {
+      const m = (json && json.error && json.error.message) || 'Permintaan gagal.';
+      setState('error');
+      chip.className = 'chip bad';
+      chip.textContent = (status || 'ERR') + ' · ' + took + ' dtk';
+      hint(m);
+      startCooldown(status === 429 ? (retry || 60) : 3);
+    }
+    busy = false;
+  }
+
+  runBtn.addEventListener('click', run);
+  q('.copy').addEventListener('click', async ev => {
+    const b = ev.currentTarget;
+    try { await navigator.clipboard.writeText(curlEl.textContent); b.textContent = 'Tersalin'; }
+    catch (e) { b.textContent = 'Gagal menyalin'; }
+    setTimeout(() => { b.textContent = 'Salin'; }, 1500);
+  });
+
+  updateCurl();
+  return root;
+}
+
+render();
