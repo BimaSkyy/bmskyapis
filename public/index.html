@@ -174,8 +174,19 @@ footer{padding:36px 0 48px;color:var(--muted);font-size:14px}
       { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, max: 100, min: 1,
         placeholder: 'Contoh: anime, kucing, pemandangan', value: 'girls' }
     ]
+  }, {
+    id: 'tiktok',
+    category: 'download',
+    title: 'TikTok Search',
+    method: 'GET',
+    path: '/api/download/tiktok',
+    result: { type: 'text', field: 'count', label: 'hasil' },
+    params: [
+      { name: 'q', type: 'textarea', label: 'Kata Kunci', required: true, max: 100, min: 1,
+        placeholder: 'Contoh: kucing lucu, musik viral', value: 'kucing lucu' }
+    ]
   }];
-  const LABELS = { ai: 'AI', search: 'Pencarian' };
+  const LABELS = { ai: 'AI', search: 'Pencarian', download: 'Unduhan' };
 
   const el = (tag, cls, text) => {
     const n = document.createElement(tag);
