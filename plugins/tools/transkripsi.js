@@ -33,20 +33,35 @@ module.exports = {
       return err(400, "url tidak valid (harus http/https). Contoh: ?url=https://u.pone.rs/kxxnsnjd.opus");
     }
 
+    // Coba sampai 3x: upstream sering balas 500 berisi "over_request_rate_limit".
     let res;
-    try {
-      res = await axios.get(UPSTREAM, {
-        params: { url },
-        timeout: 180000,
-        validateStatus: () => true,
-      });
-    } catch (e) {
-      return err(502, "gagal transkripsi: " + (e.message || "upstream error"));
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        res = await axios.get(UPSTREAM, {
+          params: { url },
+          timeout: 180000,
+          validateStatus: () => true,
+        });
+      } catch (e) {
+        return err(502, "gagal transkripsi: " + (e.message || "upstream error"));
+      }
+      const msg = typeof res.data?.message === "string" ? res.data.message : "";
+      if (res.status < 400 && res.data && res.data.status) break;
+      // hanya retry untuk rate limit / error sementara
+      if (/rate_limit|over_request|temporar|try again/i.test(msg) && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+        continue;
+      }
+      break;
     }
 
     const payload = res.data;
     if (res.status >= 400 || !payload || !payload.status) {
-      return err(502, `upstream gagal (HTTP ${res.status})`);
+      const detail =
+        typeof payload?.message === "string" && payload.message
+          ? payload.message
+          : `HTTP ${res.status}`;
+      return err(502, `upstream gagal: ${detail}`);
     }
 
     const raw = payload.data && payload.data.raw;
