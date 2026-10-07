@@ -478,49 +478,51 @@ function err(status, message) {
   };
 }
 
-const TYPES = ["search", "track", "album", "artist"];
-
 module.exports = {
   name: "spotify",
   category: "downloader",
-  description: "Spotify: cari lagu, metadata track/album/artist, download MP3 (dl)",
+  description: "Spotify: ketik nama lagu untuk cari + unduh MP3, atau tempel link/ID",
   method: "GET",
   url: BASE,
 
   params: [
-    { name: "type", label: "Aksi", type: "select", options: TYPES, default: "search" },
     {
       name: "q",
-      label: "Kata kunci / ID / URL (dl: nama lagu saja)",
+      label: "Nama lagu / link / ID Spotify",
       type: "text",
       required: true,
       example: "never gonna give you up rick astley",
     },
-    { name: "limit", label: "Limit (search)", type: "number", required: false, default: "10" },
   ],
 
-  async run({ type = "search", q, limit = "10" }, { axios }) {
+  async run({ q }, { axios, req }) {
     try {
       if (!q || !q.trim()) return err(400, "q diperlukan");
-      const lim = Math.min(Math.max(parseInt(limit, 10) || 10, 1), 50);
+      const input = q.trim();
+
+      const isTrack = /spotify:track:|open\.spotify\.com\/track\/|\/track\//.test(input);
+      const isAlbum = /spotify:album:|open\.spotify\.com\/album\/|\/album\//.test(input);
+      const isArtist = /spotify:artist:|open\.spotify\.com\/artist\/|\/artist\//.test(input);
+
+      // type opsional lewat query (?type=search|track|album|artist|dl); default otomatis.
+      const forced = String(req?.query?.type || "").toLowerCase();
+      const type = forced || (isAlbum ? "album" : isArtist ? "artist" : "dl");
 
       let data;
-      if (type === "search") data = await search(q.trim(), { limit: lim });
-      else if (type === "track") data = await track(q.trim());
-      else if (type === "album") data = await album(q.trim());
-      else if (type === "artist") data = await artist(q.trim());
+      if (type === "search") data = await search(input, { limit: 10 });
+      else if (type === "track") data = await track(input);
+      else if (type === "album") data = await album(input);
+      else if (type === "artist") data = await artist(input);
       else if (type === "dl") {
-        let url = q.trim();
-        let source = null;
-        if (!/^(https?:\/\/|spotify:)/.test(url)) {
-          const r = await search(url, { limit: 1 });
+        if (isTrack) {
+          data = await sdDownloadTrack(input);
+        } else {
+          const r = await search(input, { limit: 1 });
           const first = r.tracks?.[0];
           if (!first?.url) return err(404, "tidak ada hasil untuk kata kunci itu");
-          url = first.url;
-          source = first;
+          data = await sdDownloadTrack(first.url, first);
         }
-        data = await sdDownloadTrack(url, source);
-      } else return err(400, `type tidak dikenal: ${type} (pilih: ${TYPES.join(", ")})`);
+      } else return err(400, `type tidak dikenal: ${type}`);
 
       return { success: true, data };
     } catch (e) {
