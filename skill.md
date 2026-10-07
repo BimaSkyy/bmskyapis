@@ -1,106 +1,105 @@
 ---
 name: bmskyapis
-description: Aturan dan alur kerja proyek BmSkyApis (REST API di Vercel dengan halaman playground). Gunakan skill ini setiap kali user minta menambah, mengubah, atau memperbaiki fitur/endpoint API, tampilan web, rate limit, atau minta deploy proyek ini, walaupun user tidak menyebut nama proyeknya.
+description: Aturan dan alur kerja proyek BmSkyApis (REST API di Vercel dengan sistem plugin dan halaman playground). Gunakan skill ini setiap kali user minta menambah, mengubah, atau memperbaiki endpoint/plugin API, tampilan web, atau minta deploy proyek ini, walaupun user tidak menyebut nama proyeknya.
 ---
 
 # BmSkyApis
 
-REST API sederhana di Vercel. Backend berupa serverless function Node.js (CommonJS), frontend satu file HTML statis.
+REST API di Vercel berbasis plugin. Satu server Express memuat semua file di `plugins/` secara otomatis, dan satu file HTML statis menjadi playground.
 Repo: https://github.com/BimaSkyy/bmskyapis. Folder kerja di Termux: `~/webApiVercel`.
 Setiap `git push` ke branch `main` otomatis dideploy oleh Vercel.
 
 ## Struktur (jangan diubah)
 
 ```
-api/_lib/guard.js      rate limit anti-spam + helper fail()
-api/<kategori>/<nama>.js   satu file = satu endpoint  -> /api/<kategori>/<nama>
-public/index.html      halaman: kategori -> daftar fitur -> panel Playground
+api/index.js              pintu masuk Vercel, hanya me-require ../server
+server.js                 loader plugin + route /api/:name dan /meta/plugins
+plugins/<kategori>/<nama>.js   satu file = satu endpoint -> /api/<nama>
+plugins/_templates.js     contoh/kerangka (awalan "_" diabaikan loader)
+public/index.html         playground, daftar fitur dibaca dari /meta/plugins
 package.json, vercel.json
 ```
 
-Folder `api/` dan `public/` harus langsung di root repo. Nama file huruf kecil semua (Vercel peka huruf besar-kecil). File di `api/_lib/` tidak menjadi route.
+Endpoint berbentuk `/api/<name>` (bukan `/api/<kategori>/<nama>`). Kategori hanya untuk pengelompokan di web, diambil dari field `category` atau nama folder. `name` harus unik. Nama file huruf kecil semua.
 
-## Menambah fitur baru (3 langkah)
+## Menambah endpoint baru
 
-### 1. Buat `api/<kategori>/<nama>.js`
+Cukup SATU langkah: buat `plugins/<kategori>/<nama>.js`. Tidak perlu mengedit `server.js` atau `public/index.html`; web membaca daftar plugin otomatis. Salin dari `plugins/_templates.js`.
 
-Ikuti pola `api/ai/gemini.js` / `text2video.js`. Kerangka minimal:
+### Mode 1: proxy sederhana (deklaratif)
+
+Dipakai kalau upstream tinggal diteruskan apa adanya dan semua parameter berasal dari user.
 
 ```js
-'use strict';
-const { rateLimit, fail } = require('../_lib/guard');
-
-const UPSTREAM = 'https://...';
-const UPSTREAM_TIMEOUT_MS = 55 * 1000;
-
-module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'no-store');
-  if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    return res.status(204).end();
-  }
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET, OPTIONS');
-    return fail(res, 405, 'METHOD_NOT_ALLOWED', 'Gunakan metode GET.');
-  }
-
-  if (!rateLimit(req, res, '<nama>')) return;   // wajib, nama unik per endpoint
-
-  // validasi parameter (tipe string, panjang dibatasi) -> fail(res, 400, 'INVALID_PARAMETER', '...')
-  // panggil upstream dengan fetch + AbortSignal.timeout(UPSTREAM_TIMEOUT_MS)
-  //   timeout -> fail(res, 504, 'TIMEOUT', ...)
-  //   gagal   -> fail(res, 502, 'UPSTREAM_ERROR' / 'GENERATE_FAILED', ...)
-  // sukses:
-  return res.status(200).json({ success: true, data: { /* ... */ } });
+module.exports = {
+  name: "deepai",
+  category: "ai",
+  description: "Ask anything to DeepAI",
+  method: "GET",                       // GET (default) atau POST
+  url: "https://example.com/api",
+  timeout: 60000,                      // opsional
+  headers: {},                         // opsional
+  params: [
+    { name: "text", label: "Question", required: true, example: "hello" },
+  ],
 };
 ```
 
-Aturan:
-- Hanya metode GET. Format sukses `{ success: true, data: {...} }`, gagal `{ success: false, error: { code, message } }` (pakai `fail()`).
-- Pakai `fetch` bawaan Node, bukan axios, kecuali memang perlu module. Kalau perlu module: `npm install <nama>` supaya tercatat di `package.json`.
-- Semua input dari query harus divalidasi: pastikan bertipe string, batasi panjang, buang karakter kontrol, whitelist untuk nilai pilihan (seperti `ratio`, `lang`).
-- URL upstream, model, dan kunci rahasia hanya ada di server. Jangan kirim ke client dan jangan tulis token/API key di kode atau repo (pakai Environment Variables Vercel).
-- Pesan error dari upstream jangan diteruskan mentah kecuali sudah dipastikan berupa string biasa.
-- Jangan ubah angka rate limit di `guard.js` kecuali user memintanya.
+Field `params`: `name`, `label`, `type` (`text` | `number` | `textarea` | `select` dengan `options`), `required` (default true; `false` = opsional), `default`, `example`, dan `key` (nama parameter di upstream kalau beda dari `name`).
 
-### 2. Daftarkan di array `ENDPOINTS` di `public/index.html`
+### Mode 2: logika kustom (`run`)
+
+Dipakai kalau upstream butuh parameter tetap (misalnya `action=generate`), perlu memproses/menyaring respons, atau mengembalikan data biner.
 
 ```js
-{
-  id: 'nama',
-  category: 'ai',                 // kategori baru otomatis muncul sebagai baris baru
-  title: 'Judul Fitur',
-  method: 'GET',
-  path: '/api/ai/nama',
-  result: { type: 'video' | 'audio' | 'text', field: 'namaFieldDiData', label: 'kata untuk "Membuat ..."' },
-  params: [
-    { name: 'text', type: 'textarea', label: 'Teks', required: true, max: 500, min: 1, placeholder: '...', value: 'contoh' },
-    { name: 'lang', type: 'input', label: 'Bahasa', limit: 20, value: 'Id' },
-    { name: 'ratio', type: 'select', label: 'Rasio', value: 'auto', options: [['auto', 'Otomatis'], ['16:9', '16:9']] }
-  ]
+async run({ prompt, ratio }, { axios, req }) {
+  const r = await axios.get("https://example.com/api", {
+    params: { action: "generate", prompt, ratio },
+    timeout: 120000,
+    validateStatus: () => true,
+  });
+  // 1) kembalikan nilai biasa -> dikirim sebagai JSON
+  return { success: true, data: { ... } };
+  // 2) atau respons mentah/biner:
+  // return { status: 200, contentType: "video/mp4", body: Buffer.from(r.data) };
 }
 ```
 
-- `result.type`: `video` dan `audio` mengharapkan `data[field]` berupa URL `https://`; `text` mengharapkan string.
-- Kalau kategori punya singkatan yang harus huruf besar (misalnya `ai` jadi `AI`), tambahkan di objek `LABELS`.
-- Kalau jenis hasil baru belum didukung (misalnya gambar), tambahkan penanganannya di `createPlayground` di file yang sama.
+Kalau `run` ada, `url` tetap wajib diisi (loader menolak plugin tanpa `url` dan tanpa `run`); isi dengan URL upstream sebagai penanda.
 
-### 3. Cek lalu deploy
+### Aturan
+
+- Hanya `axios` yang tersedia lewat argumen kedua `run`. Modul lain: `npm install <nama>` agar tercatat di `package.json`.
+- Parameter yang masuk ke `run` selalu berupa string. Server sudah mengecek `required` dan mengisi `default`, tapi tetap batasi panjang/whitelist nilai penting sendiri.
+- URL upstream, token, dan API key tidak boleh bocor ke client. Simpan rahasia di Environment Variables Vercel (`process.env.X`), jangan di kode atau repo.
+- Error upstream: `validateStatus: () => true` lalu kembalikan `{ status, contentType: "application/json", body: JSON.stringify({ success: false, error: "..." }) }`. Jangan teruskan pesan mentah upstream kecuali sudah pasti string biasa. Exception yang tidak ditangani otomatis menjadi 502.
+- Format JSON sukses: `{ success: true, data: {...} }`.
+- Tidak ada rate limit bawaan di server saat ini. Jangan menambahkannya kecuali user minta.
+- Perubahan file plugin terbaca otomatis tanpa restart (loader memeriksa waktu modifikasi tiap request).
+
+## Playground (public/index.html)
+
+Web menampilkan hasil berdasarkan `Content-Type` respons: `image/*`, `video/*`, `audio/*` dirender langsung; JSON/teks ditampilkan sebagai teks; sisanya jadi link unduh. Artinya:
+
+- Plugin yang hanya mengembalikan JSON berisi URL (misalnya `videoUrl`) tampil sebagai JSON di playground, bukan pemutar video.
+- Untuk pemutar langsung, `run` harus mengembalikan byte dengan `contentType` media. Hati-hati: fungsi serverless Vercel punya batas ukuran respons sekitar 4,5 MB, jadi file besar lebih aman dikembalikan sebagai URL.
+
+Aturan tampilan: web tetap bersih dan ringan, satu file HTML, tanpa library eksternal. Jangan menambah banner atau blok dokumentasi panjang.
+
+## Deploy
 
 ```
-node --check api/<kategori>/<nama>.js
-git add -A && git commit -m "tambah fitur <nama>" && git push
+node --check plugins/<kategori>/<nama>.js
+git add -A && git commit -m "tambah plugin <nama>" && git push
 ```
 
-Setelah push, Vercel deploy otomatis. Jangan commit `node_modules`, `.vercel`, atau file `.env` (pastikan ada di `.gitignore`).
+`vercel.json` sudah menyertakan `plugins/**` lewat `includeFiles` dan merewrite `/api/*` dan `/meta/*` ke `api/index.js`. Jangan hapus itu. Jangan commit `node_modules`, `.vercel`, atau `.env`.
 
-## Aturan tampilan
-
-Web harus tetap bersih dan ringan: judul, daftar kategori, klik kategori membuka list fitur, klik fitur membuka Playground. Jangan menambah blok teks, banner, atau dokumentasi panjang di halaman. Satu file HTML, tanpa library eksternal selain font yang sudah ada.
+Untuk plugin yang lama (video AI dan sejenisnya): fungsi Vercel punya batas durasi sesuai paket. Kalau sering timeout, atur `maxDuration` untuk `api/index.js` di bagian `functions` pada `vercel.json` sesuai batas paketmu.
 
 ## Kalau ada masalah
 
-- 404 HTML dari Vercel pada `/api/...`: file endpoint belum ter-deploy, salah folder, atau nama file salah huruf besar-kecil.
-- 429: kena rate limit (3/menit, 20/jam per IP, spam berulang diblokir 10 menit). Itu perilaku normal, bukan bug.
-- 502 `GENERATE_FAILED`/`UPSTREAM_ERROR`: masalah di API upstream, bukan di route.
+- `404 {"error":"Plugin not found"}`: file plugin salah folder, namanya diawali "_", `name` tidak cocok dengan URL, atau belum ter-deploy. Cek log `[plugin] skipped ...`.
+- `400 Missing parameter`: parameter wajib belum dikirim.
+- `502`: upstream gagal atau timeout, bukan masalah di route.
+- Plugin tidak muncul di web: ada error saat dimuat (cek log), atau `/meta/plugins` tidak ter-rewrite.
