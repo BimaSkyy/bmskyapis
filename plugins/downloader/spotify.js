@@ -314,7 +314,19 @@ async function sdReq(url, { method = "GET", body, headers = {} } = {}) {
     try {
       const res = await fetch(url, {
         method,
-        headers: { "User-Agent": SD_UA, Accept: "*/*", Cookie: sdCk(), ...headers },
+        headers: {
+          "User-Agent": SD_UA,
+          Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
+          "Upgrade-Insecure-Requests": "1",
+          "Sec-Fetch-Dest": "document",
+          "Sec-Fetch-Mode": "navigate",
+          "Sec-Fetch-Site": "none",
+          "Sec-Fetch-User": "?1",
+          "Cache-Control": "no-cache",
+          Cookie: sdCk(),
+          ...headers,
+        },
         body,
         signal: ac.signal,
         redirect: "follow",
@@ -339,12 +351,37 @@ async function sdReq(url, { method = "GET", body, headers = {} } = {}) {
 }
 
 let sdNonce = null;
+const SD_NONCE_RE = [
+  /"nonce":"([a-f0-9]+)"/,
+  /nonce['"]?\s*[:=]\s*['"]([a-f0-9]{8,})['"]/i,
+  /name="_wpnonce"\s+value="([a-f0-9]+)"/i,
+  /elementor_pro_forms_send_form[\s\S]{0,400}?nonce['"]?\s*[:=]\s*['"]([a-f0-9]{8,})['"]/i,
+];
+function sdFindNonce(txt) {
+  for (const re of SD_NONCE_RE) {
+    const m = txt.match(re);
+    if (m && m[1]) return m[1];
+  }
+  return null;
+}
 async function sdGetNonce() {
   if (sdNonce) return sdNonce;
-  const { txt } = await sdReq(`${SDIDR_BASE}/`);
-  sdNonce = txt.match(/"nonce":"([a-f0-9]+)"/)?.[1] || null;
-  if (!sdNonce) throw new Error("Nonce form spotidown tidak ditemukan.");
-  return sdNonce;
+  const pages = [`${SDIDR_BASE}/`, `${SDIDR_BASE}/spotify-song-downloader/`];
+  let lastDiag = "";
+  for (const url of pages) {
+    try {
+      const { res, txt } = await sdReq(url);
+      const found = sdFindNonce(txt);
+      if (found) {
+        sdNonce = found;
+        return sdNonce;
+      }
+      lastDiag = `HTTP ${res.status}, ${txt.length} byte, cf=${res.headers.get("server") || "-"}`;
+    } catch (e) {
+      lastDiag = e.message;
+    }
+  }
+  throw new Error(`Nonce form spotidown tidak ditemukan (${lastDiag}).`);
 }
 
 async function sdStartDownload(spotifyUrl) {
