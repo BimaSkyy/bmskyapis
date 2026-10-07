@@ -3,6 +3,16 @@
 // Hasil: JSON berisi daftar pin (image, url, username, dll) -> tampil sebagai JSON di playground.
 const UPSTREAM = "https://zellrayy.com/search/pinterest";
 
+// Header mirip browser: membantu lolos aturan Cloudflare pada IP datacenter (Vercel).
+const BROWSER_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  Accept: "application/json, text/plain, */*",
+  "Accept-Language": "en-US,en;q=0.9,id;q=0.8",
+  Referer: "https://zellrayy.com/",
+  Origin: "https://zellrayy.com",
+};
+
 function err(status, message) {
   return {
     status,
@@ -10,6 +20,8 @@ function err(status, message) {
     body: JSON.stringify({ success: false, error: message }),
   };
 }
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 module.exports = {
   name: "pinterest",
@@ -43,21 +55,34 @@ module.exports = {
 
     const lim = Math.min(Math.max(parseInt(limit, 10) || 5, 1), 50);
 
+    // Coba sampai 2x: retry singkat saat 403/429 (kemungkinan challenge Cloudflare).
     let res;
-    try {
-      res = await axios.get(UPSTREAM, {
-        params: { q: q.trim(), limit: lim, scope },
-        timeout: 30000,
-        validateStatus: () => true,
-      });
-    } catch (e) {
-      return err(502, "gagal cari pinterest: " + (e.message || "upstream error"));
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        res = await axios.get(UPSTREAM, {
+          params: { q: q.trim(), limit: lim, scope },
+          timeout: 30000,
+          headers: BROWSER_HEADERS,
+          validateStatus: () => true,
+        });
+      } catch (e) {
+        return err(502, "gagal cari pinterest: " + (e.message || "upstream error"));
+      }
+      if (res.status !== 403 && res.status !== 429) break;
+      if (attempt === 0) await sleep(800);
     }
 
-    const data = res.data;
+    if (res.status === 403 || res.status === 429) {
+      return err(
+        res.status === 429 ? 429 : 502,
+        `upstream menolak (HTTP ${res.status}) — kemungkinan IP server diblokir Cloudflare zellrayy.com. Coba lagi nanti.`
+      );
+    }
     if (res.status >= 400) {
       return err(502, `upstream membalas HTTP ${res.status}`);
     }
+
+    const data = res.data;
     if (!data || !data.status || !Array.isArray(data.result) || data.result.length === 0) {
       return err(404, "tidak ada hasil untuk: " + q.trim());
     }
