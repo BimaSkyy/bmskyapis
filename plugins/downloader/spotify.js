@@ -290,6 +290,186 @@ async function artist(idOrUri) {
   };
 }
 
+// ── SPOTIDOWN: full MP3 (JSON) ──────────────────────────────
+const SDIDR_BASE = "https://spotidown.net/en";
+const SD_UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";
+
+const sdJar = new Map();
+function sdAddCookies(headers) {
+  const list = headers.getSetCookie?.() ?? [];
+  for (const c of list) {
+    const [p] = c.split(";");
+    const i = p.indexOf("=");
+    if (i > 0) sdJar.set(p.slice(0, i).trim(), p.slice(i + 1).trim());
+  }
+}
+const sdCk = () => [...sdJar].map(([k, v]) => `${k}=${v}`).join("; ");
+
+async function sdReq(url, { method = "GET", body, headers = {} } = {}) {
+  let lastErr;
+  for (let i = 0; i <= RETRIES; i++) {
+    const ac = new AbortController();
+    const t = setTimeout(() => ac.abort(), TIMEOUT);
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "User-Agent": SD_UA, Accept: "*/*", Cookie: sdCk(), ...headers },
+        body,
+        signal: ac.signal,
+        redirect: "follow",
+      });
+      sdAddCookies(res.headers);
+      const txt = await res.text();
+      if (RETRYABLE.has(res.status) && i < RETRIES) {
+        lastErr = new Error(`HTTP ${res.status}`);
+        await sleep(Math.min(1000 * 2 ** i, 8000));
+        continue;
+      }
+      return { res, txt };
+    } catch (e) {
+      lastErr = e;
+      if (e.name !== "AbortError" && !(e instanceof TypeError)) break;
+      await sleep(Math.min(1000 * 2 ** i, 8000));
+    } finally {
+      clearTimeout(t);
+    }
+  }
+  throw lastErr || new Error(`Fetch gagal: ${url}`);
+}
+
+let sdNonce = null;
+async function sdGetNonce() {
+  if (sdNonce) return sdNonce;
+  const { txt } = await sdReq(`${SDIDR_BASE}/`);
+  sdNonce = txt.match(/"nonce":"([a-f0-9]+)"/)?.[1] || null;
+  if (!sdNonce) throw new Error("Nonce form spotidown tidak ditemukan.");
+  return sdNonce;
+}
+
+async function sdStartDownload(spotifyUrl) {
+  const n = await sdGetNonce();
+  const { txt } = await sdReq(`${SDIDR_BASE}/wp-admin/admin-ajax.php`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Referer: `${SDIDR_BASE}/`,
+      Origin: "https://spotidown.net",
+    },
+    body: new URLSearchParams({
+      action: "elementor_pro_forms_send_form",
+      form_id: "394636d",
+      post_id: "2",
+      queried_id: "2",
+      elementor_ajax: "1",
+      "form_fields[music_url]": spotifyUrl,
+      referrer: `${SDIDR_BASE}/`,
+      nonce: n,
+    }).toString(),
+  });
+  let json;
+  try {
+    json = JSON.parse(txt);
+  } catch {
+    throw new Error("spotidown: respons form bukan JSON.");
+  }
+  const redirect = json?.data?.data?.["1"]?.redirect_url;
+  if (!redirect) throw new Error("spotidown: redirect_url kosong (form ditolak).");
+  const resolved = redirect.startsWith("http")
+    ? redirect.replace("http://", "https://")
+    : `https://spotidown.net${redirect}`;
+  const page = await sdReq(resolved);
+  const start = page.txt.indexOf("smdDownloadData");
+  let output = null;
+  if (start !== -1) {
+    const eq = page.txt.indexOf("=", start);
+    const brace = page.txt.indexOf("{", eq);
+    if (brace !== -1) {
+      let depth = 0;
+      let end = -1;
+      for (let i = brace; i < page.txt.length; i++) {
+        if (page.txt[i] === "{") depth++;
+        else if (page.txt[i] === "}" && --depth === 0) {
+          end = i;
+          break;
+        }
+      }
+      if (end > brace) output = JSON.parse(page.txt.slice(brace, end + 1)).output;
+    }
+  }
+  if (!output) throw new Error("spotidown: smdDownloadData tidak ditemukan.");
+  return output;
+}
+
+async function sdResolveMp3(item, spotifyUrl, { attempts = 25 } = {}) {
+  const name = item.name || item.song_name;
+  const artists = (item.artists || []).map((a) => a.name).filter(Boolean).join(", ");
+  const link = item.external_urls?.spotify || item.link || spotifyUrl;
+  const b64 = Buffer.from(
+    encodeURIComponent(JSON.stringify({ song_name: name, artist: artists, link }))
+  ).toString("base64");
+  const start = await sdReq(
+    `${SDIDR_BASE}/wp-admin/admin-ajax.php?action=check_download_status&data=${encodeURIComponent(b64)}`
+  );
+  let s;
+  try {
+    s = JSON.parse(start.txt);
+  } catch {
+    throw new Error("spotidown: check_download_status bukan JSON.");
+  }
+  if (!s?.success || !s?.data?.download_id) throw new Error("spotidown: check_download_status gagal.");
+  const did = s.data.download_id;
+  for (let i = 0; i < attempts; i++) {
+    await sleep(1500);
+    const { txt } = await sdReq(
+      `${SDIDR_BASE}/wp-admin/admin-ajax.php?action=get_download_status&download_id=${encodeURIComponent(did)}`
+    );
+    let d;
+    try {
+      d = JSON.parse(txt);
+    } catch {
+      continue;
+    }
+    if (d?.data?.status === "ready" && d?.data?.download_url) {
+      return { downloadUrl: d.data.download_url, title: d.data.title || name, thumbnail: d.data.thumbnail || null };
+    }
+    if (d?.data?.status === "failed" || d?.data?.status === "error") {
+      throw new Error(`spotidown: download gagal (${d?.data?.message || "unknown"}).`);
+    }
+  }
+  throw new Error("spotidown: timeout menunggu download_url.");
+}
+
+async function sdDownloadTrack(spotifyUrl, source) {
+  const output = await sdStartDownload(spotifyUrl);
+  let items = output.artist_tracks?.length ? output.artist_tracks : [];
+  if (!items.length && Array.isArray(output.tracks?.items)) {
+    items = output.tracks.items.map((i) => ({
+      ...i,
+      album: i.album || { images: output.images },
+      external_urls: i.external_urls || { spotify: `https://open.spotify.com/track/${i.id}` },
+    }));
+  }
+  if (!items.length) items = [output];
+  const saved = [];
+  for (const item of items) {
+    const mp3 = await sdResolveMp3(item, spotifyUrl);
+    saved.push({
+      title: mp3.title,
+      artist: (item.artists || []).map((a) => a.name).filter(Boolean).join(", ") || source?.artists?.join(", ") || null,
+      album: item.album?.name || source?.album || null,
+      duration: item.duration || null,
+      spotifyId: item.id || source?.id || null,
+      spotifyUrl,
+      cover: item.album?.images?.[0]?.url || source?.albumCover || null,
+      thumbnail: mp3.thumbnail || null,
+      previewUrl: item.preview_url || source?.audioPreviewUrl || null,
+      fullMp3Url: mp3.downloadUrl,
+    });
+  }
+  return { type: output.type || "track", total: saved.length, tracks: saved };
+}
+
 function err(status, message) {
   return {
     status,
@@ -303,7 +483,7 @@ const TYPES = ["search", "track", "album", "artist"];
 module.exports = {
   name: "spotify",
   category: "downloader",
-  description: "Spotify: cari lagu, metadata track/album/artist",
+  description: "Spotify: cari lagu, metadata track/album/artist, download MP3 (dl)",
   method: "GET",
   url: BASE,
 
@@ -311,10 +491,10 @@ module.exports = {
     { name: "type", label: "Aksi", type: "select", options: TYPES, default: "search" },
     {
       name: "q",
-      label: "Kata kunci / ID / URL",
+      label: "Kata kunci / ID / URL (dl: nama lagu saja)",
       type: "text",
       required: true,
-      example: "stay happy tj",
+      example: "never gonna give you up rick astley",
     },
     { name: "limit", label: "Limit (search)", type: "number", required: false, default: "10" },
   ],
@@ -329,7 +509,18 @@ module.exports = {
       else if (type === "track") data = await track(q.trim());
       else if (type === "album") data = await album(q.trim());
       else if (type === "artist") data = await artist(q.trim());
-      else return err(400, `type tidak dikenal: ${type} (pilih: ${TYPES.join(", ")})`);
+      else if (type === "dl") {
+        let url = q.trim();
+        let source = null;
+        if (!/^(https?:\/\/|spotify:)/.test(url)) {
+          const r = await search(url, { limit: 1 });
+          const first = r.tracks?.[0];
+          if (!first?.url) return err(404, "tidak ada hasil untuk kata kunci itu");
+          url = first.url;
+          source = first;
+        }
+        data = await sdDownloadTrack(url, source);
+      } else return err(400, `type tidak dikenal: ${type} (pilih: ${TYPES.join(", ")})`);
 
       return { success: true, data };
     } catch (e) {
