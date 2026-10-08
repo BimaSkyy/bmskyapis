@@ -1,12 +1,11 @@
 {
   "functions": {
     "api/index.js": {
-      "includeFiles": ["plugins/**", "node_modules/@napi-rs/canvas/**", "node_modules/@napi-rs/canvas-linux-x64-gnu/**"]
+      "includeFiles": "plugins/**"
     }
   },
   "rewrites": [
     { "source": "/", "destination": "/api" },
-    { "source": "/og/:path*", "destination": "/api" },
     { "source": "/api/:path*", "destination": "/api" },
     { "source": "/meta/:path*", "destination": "/api" }
   ]

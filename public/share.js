@@ -53,7 +53,6 @@
         el("button", { class: "share-x", type: "button", "aria-label": "Tutup", onclick: () => close() }, "\u00d7")
       ),
       el("div", { class: "share-body" },
-        el("img", { class: "share-card", src: "/og/" + encodeURIComponent(name), alt: "Preview " + name }),
         el("div", { class: "share-name" }, "/api/" + name),
         el("div", { class: "share-desc" }, description || "REST API endpoint"),
         el("div", { class: "share-url" }, url),
@@ -64,7 +63,7 @@
             : null,
           el("button", { class: "share-btn", type: "button", onclick: () => copy(url, "URL") }, "Copy link")
         ),
-        el("div", { class: "share-hint" }, "Paste di WA/FB/dll - link ini otomatis menampilkan gambar preview endpoint."))
+        el("div", { class: "share-hint" }, "Paste di WA/FB/dll untuk membagikan endpoint."))
     );
     const backdrop = el("div", { class: "share-backdrop" }, dlg);
     function close() { backdrop.remove(); document.removeEventListener("keydown", onKey); }
