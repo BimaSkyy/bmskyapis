@@ -94,7 +94,7 @@ module.exports = { injectMeta, renderCard };
 // Pasang route OG ke app express. deps: { syncPlugins, plugins: () => Map, path, fs, root }
 function registerRoutes(app, deps) {
   app.set("trust proxy", true);
-  const readIndex = () => deps.fs.readFileSync(deps.path.join(deps.root, "public", "index.html"), "utf8");
+  const readIndex = () => deps.fs.readFileSync(deps.path.join(deps.root, "public", "app.html"), "utf8");
 
   app.get("/", (req, res) => {
     deps.syncPlugins();
