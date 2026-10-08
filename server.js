@@ -50,6 +50,7 @@ function syncPlugins() {
   console.log(`[plugin] loaded ${plugins.size} plugin(s)`);
 }
 
+require("./og").registerRoutes(app, { syncPlugins, plugins: () => plugins, path, fs, root: __dirname });
 app.use(express.static(path.join(__dirname, "public")));
 
 // Metadata used by the web UI (handlers and internals are not exposed).
