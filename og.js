@@ -1,8 +1,19 @@
 // Kartu OpenGraph untuk endpoint (PNG 1200x630) + injeksi meta tag.
 // Modul terpisah agar server.js tetap ramping. creator: @BimaSky
+// Lazy-load dinamis supaya bundler Vercel tidak mencoba membundel binary native.
 let ogCanvas = null;
-try { ogCanvas = require("@napi-rs/canvas"); }
-catch (e) { console.error("[og] @napi-rs/canvas tidak tersedia: " + e.message); }
+function loadCanvas() {
+  if (ogCanvas !== null) return ogCanvas;
+  try {
+    const { createRequire } = require("module");
+    const req = createRequire(__filename);
+    ogCanvas = req("@napi-rs/canvas") || false;
+  } catch (e) {
+    console.error("[og] @napi-rs/canvas tidak tersedia: " + e.message);
+    ogCanvas = false;
+  }
+  return ogCanvas;
+}
 
 function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
@@ -32,9 +43,10 @@ function injectMeta(html, req, plugin) {
 
 // Gambar kartu endpoint 1200x630.
 async function renderCard(p) {
-  if (!ogCanvas) return null;
+  const cv = loadCanvas();
+  if (!cv) return null;
   const W = 1200, H = 630;
-  const canvas = ogCanvas.createCanvas(W, H);
+  const canvas = cv.createCanvas(W, H);
   const ctx = canvas.getContext("2d");
 
   const grad = ctx.createLinearGradient(0, 0, W, H);
